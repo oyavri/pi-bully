@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package bully;
 
-option go_package = "github.com/oyavri/pi_bully/gen/bully";
+option go_package = "github.com/oyavri/pi-bully/gen/bully";
 
 // --- Election ---
 message ElectionRequest {

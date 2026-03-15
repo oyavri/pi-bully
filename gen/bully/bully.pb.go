@@ -533,7 +533,7 @@ const file_bully_proto_rawDesc = "" +
 	"\n" +
 	"AssignTask\x12\x18.bully.AssignTaskRequest\x1a\x19.bully.AssignTaskResponse2[\n" +
 	"\x10SchedulerService\x12G\n" +
-	"\fReportResult\x12\x1a.bully.ReportResultRequest\x1a\x1b.bully.ReportResultResponseB&Z$github.com/oyavri/pi_bully/gen/bullyb\x06proto3"
+	"\fReportResult\x12\x1a.bully.ReportResultRequest\x1a\x1b.bully.ReportResultResponseB&Z$github.com/oyavri/pi-bully/gen/bullyb\x06proto3"
 
 var (
 	file_bully_proto_rawDescOnce sync.Once
