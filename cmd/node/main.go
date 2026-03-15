@@ -19,12 +19,13 @@ import (
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
-		zap.L().Fatal("failed to load config", zap.Error(err))
+		fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
 		os.Exit(1)
 	}
 
 	logger, err := cfg.Log.BuildLogger()
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to build logger: %v\n", err)
 		os.Exit(1)
 	}
 	defer logger.Sync()
