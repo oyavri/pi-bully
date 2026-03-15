@@ -23,10 +23,15 @@ type NodeConfig struct {
 	Address string // IP address of the node
 }
 
+type ServerConfig struct {
+	Port string
+}
+
 type Config struct {
 	Database DatabaseConfig
 	Log      LogConfig
 	Node     NodeConfig
+	Server   ServerConfig
 }
 
 func Load() (Config, error) {
@@ -56,6 +61,11 @@ func Load() (Config, error) {
 		cfg.Log.Format = v
 	}
 
+	// Server
+	if v := os.Getenv("GRPC_PORT"); v != "" {
+		cfg.Server.Port = v
+	}
+
 	return cfg, cfg.validate()
 }
 
@@ -78,28 +88,32 @@ func (c *Config) validate() error {
 	}
 
 	if os.Getenv("POSTGRES_HOST") == "" {
-        return fmt.Errorf("POSTGRES_HOST is required")
-    }
+		return fmt.Errorf("POSTGRES_HOST is required")
+	}
 
-    if os.Getenv("POSTGRES_PORT") == "" {
-        return fmt.Errorf("POSTGRES_PORT is required")
-    }
+	if os.Getenv("POSTGRES_PORT") == "" {
+		return fmt.Errorf("POSTGRES_PORT is required")
+	}
 
-    if os.Getenv("POSTGRES_USER") == "" {
-        return fmt.Errorf("POSTGRES_USER is required")
-    }
+	if os.Getenv("POSTGRES_USER") == "" {
+		return fmt.Errorf("POSTGRES_USER is required")
+	}
 
-    if os.Getenv("POSTGRES_PASSWORD") == "" {
-        return fmt.Errorf("POSTGRES_PASSWORD is required")
-    }
+	if os.Getenv("POSTGRES_PASSWORD") == "" {
+		return fmt.Errorf("POSTGRES_PASSWORD is required")
+	}
 
-    if os.Getenv("POSTGRES_DB") == "" {
-        return fmt.Errorf("POSTGRES_DB is required")
-    }
+	if os.Getenv("POSTGRES_DB") == "" {
+		return fmt.Errorf("POSTGRES_DB is required")
+	}
 
-    if os.Getenv("POSTGRES_SSL_MODE") == "" {
-        return fmt.Errorf("POSTGRES_SSL_MODE is required")
-    }
+	if os.Getenv("POSTGRES_SSL_MODE") == "" {
+		return fmt.Errorf("POSTGRES_SSL_MODE is required")
+	}
+
+	if c.Server.Port == "" {
+		return fmt.Errorf("GRPC_PORT is required")
+	}
 
 	return nil
 }
@@ -135,7 +149,7 @@ func loadDatabaseConfig() DatabaseConfig {
 	return DatabaseConfig{
 		DSN: fmt.Sprintf(
 			"postgres://%s:%s@%s:%s/%s?sslmode=%s",
-			user, password, host, port, dbName, sslMode
-		)
+			user, password, host, port, dbName, sslMode,
+		),
 	}
 }
