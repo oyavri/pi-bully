@@ -1,13 +1,21 @@
 package config
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 type ServerConfig struct {
 	Port string
 }
 
-func loadServerConfig() ServerConfig {
-	return ServerConfig{
-		Port: os.Getenv("GRPC_PORT"),
+func loadServerConfig() (ServerConfig, error) {
+	port := os.Getenv("GRPC_PORT")
+	if port == "" {
+		return ServerConfig{}, fmt.Errorf("GRPC_PORT is required")
 	}
+
+	return ServerConfig{
+		Port: port,
+	}, nil
 }

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 )
@@ -10,14 +11,25 @@ type NodeConfig struct {
 	Address string
 }
 
-func loadNodeConfig() NodeConfig {
-	cfg := NodeConfig{}
-	if v := os.Getenv("NODE_ID"); v != "" {
-		id, _ := strconv.ParseUint(v, 10, 64)
-		cfg.ID = id
+func loadNodeConfig() (NodeConfig, error) {
+	nodeId := os.Getenv("NODE_ID")
+	addr := os.Getenv("NODE_ADDRESS")
+
+	id, err := strconv.ParseUint(nodeId, 10, 64)
+	if err != nil {
+		return NodeConfig{}, err
 	}
-	if v := os.Getenv("NODE_ADDRESS"); v != "" {
-		cfg.Address = v
+
+	if id == 0 {
+		return NodeConfig{}, fmt.Errorf("NODE_ID is required and must be > 0")
 	}
-	return cfg
+
+	if addr == "" {
+		return NodeConfig{}, fmt.Errorf("NODE_ADDRESS is required")
+	}
+
+	return NodeConfig{
+		ID:      id,
+		Address: addr,
+	}, nil
 }
