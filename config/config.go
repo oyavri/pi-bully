@@ -9,6 +9,7 @@ type Config struct {
 	Log      LogConfig
 	Node     NodeConfig
 	Server   ServerConfig
+	Storage  StorageConfig
 }
 
 func Load() (Config, error) {
@@ -32,6 +33,12 @@ func Load() (Config, error) {
 		return cfg, err
 	}
 	cfg.Database = db
+
+	storage, err := loadStorageConfig()
+	if err != nil {
+		return cfg, err
+	}
+	cfg.Storage = storage
 
 	return cfg, nil
 }
