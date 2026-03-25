@@ -25,3 +25,36 @@ services:
       -database postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-bully}?sslmode=disable
       up
     restart: "no"
+  localstack:
+    image: localstack/localstack:latest
+    container_name: pi-bully-storage
+    ports:
+      - "9000:4566"
+    environment:
+      SERVICES: s3
+      AWS_DEFAULT_REGION: ${STORAGE_REGION:-us-east-1}
+      LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_AUTH_TOKEN}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - localstack-data:/var/lib/localstack
+  createbuckets:
+    image: amazon/aws-cli
+    depends_on:
+      localstack:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY:-test}
+      AWS_SECRET_ACCESS_KEY: ${STORAGE_SECRET_KEY:-test}
+      AWS_DEFAULT_REGION: ${STORAGE_REGION:-us-east-1}
+    entrypoint: >
+      /bin/sh -c "
+      aws --endpoint-url http://localstack:4566 s3 mb s3://${STORAGE_BUCKET:-bully} || true;
+      echo 'Bucket created';
+      "
+    restart: "no"
+  volumes:
+    localstack-data:
