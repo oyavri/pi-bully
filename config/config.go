@@ -5,11 +5,12 @@ import (
 )
 
 type Config struct {
-	Database DatabaseConfig
-	Log      LogConfig
-	Node     NodeConfig
-	Server   ServerConfig
-	Storage  StorageConfig
+	Database   DatabaseConfig
+	Log        LogConfig
+	Node       NodeConfig
+	Server     ServerConfig
+	Storage    StorageConfig
+	Memberlist MemberlistConfig
 }
 
 func Load() (Config, error) {
@@ -39,6 +40,12 @@ func Load() (Config, error) {
 		return cfg, err
 	}
 	cfg.Storage = storage
+
+	ml, err := loadMemberlistConfig()
+	if err != nil {
+		return cfg, err
+	}
+	cfg.Memberlist = ml
 
 	return cfg, nil
 }
