@@ -51,34 +51,6 @@ func loadMemberlistConfig() (MemberlistConfig, error) {
 	}, nil
 }
 
-func getDurationEnv(key string, defaultValue time.Duration) time.Duration {
-	v := os.Getenv(key)
-	if v == "" {
-		return defaultValue
-	}
-
-	d, err := time.ParseDuration(v)
-	if err != nil {
-		return defaultValue
-	}
-
-	return d
-}
-
-func getIntEnv(key string, defaultValue int) int {
-	v := os.Getenv(key)
-	if v == "" {
-		return defaultValue
-	}
-
-	i, err := strconv.Atoi(v)
-	if err != nil {
-		return defaultValue
-	}
-
-	return i
-}
-
 func parseSeeds(v string) []string {
 	var seeds []string
 	for s := range strings.SplitSeq(v, ",") {
