@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/oyavri/pi-bully/cluster"
 	"github.com/oyavri/pi-bully/config"
 	"github.com/oyavri/pi-bully/server"
 	"go.uber.org/zap"
@@ -60,6 +61,21 @@ func main() {
 		}
 	}()
 
+	cl, err := cluster.New(cfg.Memberlist, cfg.Node, cfg.Server, logger)
+	if err != nil {
+		logger.Fatal("failed to create cluster", zap.Error(err))
+	}
+
+	if err := cl.Join(cfg.Memberlist.Seeds); err != nil {
+		logger.Fatal("failed to join cluster")
+	}
+
 	<-ctx.Done()
 	logger.Info("shutting down")
+
+	grpcServer.GracefulStop()
+
+	if err := cl.Leave(); err != nil {
+		logger.Error("failed to leave cluster cleanly")
+	}
 }
