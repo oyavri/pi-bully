@@ -11,6 +11,8 @@ import (
 	"github.com/oyavri/pi-bully/cluster"
 	"github.com/oyavri/pi-bully/config"
 	"github.com/oyavri/pi-bully/server"
+	"github.com/oyavri/pi-bully/storage"
+	"github.com/oyavri/pi-bully/task"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
@@ -42,6 +44,23 @@ func main() {
 	)
 	defer cancel()
 
+	// PostgreSQL
+	pool, err := task.NewPool(ctx, cfg.Database.DSN)
+	if err != nil {
+		logger.Fatal("failed to connect to postgres", zap.Error(err))
+	}
+	defer pool.Close()
+	logger.Info("connected to postgres")
+
+	taskStore := task.NewPostgresStore(pool, logger)
+
+	// Storage
+	storageClient, err := storage.New(cfg.Storage, logger)
+	if err != nil {
+		logger.Fatal("failed to create storage client", zap.Error(err))
+	}
+	logger.Info("storage client ready")
+
 	// gRPC server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.Server.Port))
 	if err != nil {
@@ -52,6 +71,7 @@ func main() {
 	pb.RegisterElectionServiceServer(grpcServer, server.NewElectionServer(logger))
 	pb.RegisterWorkerServiceServer(grpcServer, server.NewWorkerServer(logger))
 	pb.RegisterSchedulerServiceServer(grpcServer, server.NewSchedulerServer(logger))
+	logger.Info("gRPC servers registered")
 
 	// Start gRPC server in background
 	go func() {
@@ -61,6 +81,7 @@ func main() {
 		}
 	}()
 
+	// Cluster
 	cl, err := cluster.New(cfg.Memberlist, cfg.Node, cfg.Server, logger)
 	if err != nil {
 		logger.Fatal("failed to create cluster", zap.Error(err))
@@ -78,4 +99,8 @@ func main() {
 	if err := cl.Leave(); err != nil {
 		logger.Error("failed to leave cluster cleanly")
 	}
+
+	// to suppress for now
+	_ = taskStore
+	_ = storageClient
 }
