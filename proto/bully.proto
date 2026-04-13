@@ -6,13 +6,13 @@ option go_package = "github.com/oyavri/pi-bully/gen/bully";
 
 // --- Election ---
 message ElectionRequest {
-    uint64 from_id = 1;
-    uint64 term = 2;
+  uint64 from_id = 1;
+  uint64 term = 2;
 }
 
 message ElectionResponse {
-    bool ok = 1;
-    uint64 term = 2;
+  bool ok = 1;
+  uint64 term = 2;
 }
 
 message CoordinatorRequest {
@@ -23,13 +23,13 @@ message CoordinatorRequest {
 message CoordinatorResponse {}
 
 service ElectionService {
-    rpc StartElection (ElectionRequest) returns (ElectionResponse);
-    rpc AnnounceLeader (CoordinatorRequest) returns (CoordinatorResponse);
+  rpc StartElection(ElectionRequest) returns (ElectionResponse);
+  rpc AnnounceLeader(CoordinatorRequest) returns (CoordinatorResponse);
 }
 
 // --- Worker ---
 service WorkerService {
-  rpc AssignTask (AssignTaskRequest) returns (AssignTaskResponse);
+  rpc AssignTask(AssignTaskRequest) returns (AssignTaskResponse);
 }
 
 message AssignTaskRequest {
@@ -46,7 +46,7 @@ message AssignTaskResponse {
 
 // --- Scheduler ---
 service SchedulerService {
-  rpc ReportResult (ReportResultRequest) returns (ReportResultResponse);
+  rpc ReportResult(ReportResultRequest) returns (ReportResultResponse);
 }
 
 enum TaskOutcome {
