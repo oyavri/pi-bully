@@ -11,6 +11,7 @@ import (
 	"github.com/oyavri/pi-bully/cluster"
 	"github.com/oyavri/pi-bully/config"
 	"github.com/oyavri/pi-bully/election"
+	"github.com/oyavri/pi-bully/health"
 	"github.com/oyavri/pi-bully/server"
 	"github.com/oyavri/pi-bully/storage"
 	"github.com/oyavri/pi-bully/task"
@@ -76,6 +77,10 @@ func main() {
 	electionClient := election.NewClient()
 	electionEngine := election.NewEngine(cfg.Election, cfg.Node.ID, cl, electionClient, logger)
 	electionEngine.Start(ctx)
+
+	// Health
+	healthHandler := health.NewHandler(cfg.Node.ID, electionEngine, cl, logger)
+	health.Start(cfg.Health.Port, healthHandler, logger)
 
 	// gRPC server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.Server.Port))
