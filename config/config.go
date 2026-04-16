@@ -13,6 +13,7 @@ type Config struct {
 	Server     ServerConfig
 	Storage    StorageConfig
 	Memberlist MemberlistConfig
+	Election   ElectionConfig
 }
 
 func Load() (Config, error) {
@@ -48,6 +49,8 @@ func Load() (Config, error) {
 		return cfg, err
 	}
 	cfg.Memberlist = ml
+
+	cfg.Election = loadElectionConfig()
 
 	return cfg, nil
 }
