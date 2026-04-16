@@ -23,6 +23,8 @@ type Engine interface {
 	OnAnnounceLeader(leaderID uint64, term uint64)
 	IsLeader() bool
 	CurrentLeader() uint64
+	Term() uint64
+	InElection() bool
 }
 
 type engine struct {
@@ -59,6 +61,14 @@ func (e *engine) IsLeader() bool {
 
 func (e *engine) CurrentLeader() uint64 {
 	return e.state.CurrentLeader()
+}
+
+func (e *engine) Term() uint64 {
+	return e.state.Term()
+}
+
+func (e *engine) InElection() bool {
+	return e.state.InElection()
 }
 
 // OnStartElection is called by ElectionServer when a lower node sends StartElection

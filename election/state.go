@@ -60,3 +60,9 @@ func (s *State) AbortElection() {
 	defer s.mu.Unlock()
 	s.inElection = false
 }
+
+func (s *State) InElection() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.inElection
+}
