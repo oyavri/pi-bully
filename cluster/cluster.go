@@ -13,6 +13,7 @@ type Cluster interface {
 	Join(seeds []string) error
 	Leave() error
 	Members() map[uint64]Member
+	LostC() <-chan uint64
 }
 
 type cluster struct {
@@ -88,6 +89,10 @@ func (c *cluster) Leave() error {
 
 func (c *cluster) Members() map[uint64]Member {
 	return c.handler.Members()
+}
+
+func (c *cluster) LostC() <-chan uint64 {
+	return c.handler.LostC()
 }
 
 type metaDelegate struct {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/oyavri/pi-bully/cluster"
 	"github.com/oyavri/pi-bully/config"
+	"github.com/oyavri/pi-bully/election"
 	"github.com/oyavri/pi-bully/server"
 	"github.com/oyavri/pi-bully/storage"
 	"github.com/oyavri/pi-bully/task"
@@ -61,6 +62,21 @@ func main() {
 	}
 	logger.Info("storage client ready")
 
+	// Cluster
+	cl, err := cluster.New(cfg.Memberlist, cfg.Node, cfg.Server, logger)
+	if err != nil {
+		logger.Fatal("failed to create cluster", zap.Error(err))
+	}
+
+	if err := cl.Join(cfg.Memberlist.Seeds); err != nil {
+		logger.Fatal("failed to join cluster")
+	}
+
+	// Election
+	electionClient := election.NewClient()
+	electionEngine := election.NewEngine(cfg.Election, cfg.Node.ID, cl, electionClient, logger)
+	electionEngine.Start(ctx)
+
 	// gRPC server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.Server.Port))
 	if err != nil {
@@ -68,7 +84,7 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
-	pb.RegisterElectionServiceServer(grpcServer, server.NewElectionServer(logger))
+	pb.RegisterElectionServiceServer(grpcServer, server.NewElectionServer(electionEngine, logger))
 	pb.RegisterWorkerServiceServer(grpcServer, server.NewWorkerServer(logger))
 	pb.RegisterSchedulerServiceServer(grpcServer, server.NewSchedulerServer(logger))
 	logger.Info("gRPC servers registered")
@@ -80,16 +96,6 @@ func main() {
 			logger.Error("gRPC server error", zap.Error(err))
 		}
 	}()
-
-	// Cluster
-	cl, err := cluster.New(cfg.Memberlist, cfg.Node, cfg.Server, logger)
-	if err != nil {
-		logger.Fatal("failed to create cluster", zap.Error(err))
-	}
-
-	if err := cl.Join(cfg.Memberlist.Seeds); err != nil {
-		logger.Fatal("failed to join cluster")
-	}
 
 	<-ctx.Done()
 	logger.Info("shutting down")
