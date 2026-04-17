@@ -11,6 +11,7 @@ import (
 type MemberlistConfig struct {
 	BindAddr         string
 	BindPort         int
+	AdvertiseAddr    string
 	Seeds            []string
 	ProbeInterval    time.Duration
 	ProbeTimeout     time.Duration
@@ -42,6 +43,7 @@ func loadMemberlistConfig() (MemberlistConfig, error) {
 	return MemberlistConfig{
 		BindAddr:         bindAddr,
 		BindPort:         port,
+		AdvertiseAddr:    getEnvOrDefault("MEMBERLIST_ADVERTISE_ADDR", bindAddr),
 		Seeds:            parseSeeds(seeds),
 		ProbeInterval:    getDurationEnv("MEMBERLIST_PROBE_INTERVAL", 1*time.Second),
 		ProbeTimeout:     getDurationEnv("MEMBERLIST_PROBE_TIMEOUT", 500*time.Millisecond),

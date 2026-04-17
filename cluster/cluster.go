@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 
 	"github.com/hashicorp/memberlist"
@@ -34,10 +35,24 @@ func New(cfg config.MemberlistConfig, nodeCfg config.NodeConfig, serverCfg confi
 
 	handler := NewEventHandler(log)
 
+	advertiseAddr := cfg.AdvertiseAddr
+	if ip := net.ParseIP(advertiseAddr); ip == nil {
+		// it's a hostname, resolve it
+		addrs, err := net.LookupHost(advertiseAddr)
+		if err != nil {
+			return nil, fmt.Errorf("cluster: resolve advertise addr %q: %w", advertiseAddr, err)
+		}
+		if len(addrs) == 0 {
+			return nil, fmt.Errorf("cluster: no addresses found for %q", advertiseAddr)
+		}
+		advertiseAddr = addrs[0]
+	}
+
 	mlCfg := memberlist.DefaultLANConfig()
 	mlCfg.Name = strconv.FormatUint(nodeCfg.ID, 10)
 	mlCfg.BindAddr = cfg.BindAddr
 	mlCfg.BindPort = cfg.BindPort
+	mlCfg.AdvertiseAddr = advertiseAddr
 	mlCfg.ProbeInterval = cfg.ProbeInterval
 	mlCfg.ProbeTimeout = cfg.ProbeTimeout
 	mlCfg.GossipInterval = cfg.GossipInterval

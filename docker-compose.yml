@@ -13,6 +13,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
   migrate:
     image: migrate/migrate
     depends_on:
@@ -25,6 +26,7 @@ services:
       -database postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-bully}?sslmode=disable
       up
     restart: "no"
+
   localstack:
     image: localstack/localstack:latest
     container_name: pi-bully-storage
@@ -41,6 +43,7 @@ services:
       retries: 5
     volumes:
       - localstack-data:/var/lib/localstack
+
   createbuckets:
     image: amazon/aws-cli
     depends_on:
@@ -56,5 +59,94 @@ services:
       echo 'Bucket created';
       "
     restart: "no"
-  volumes:
-    localstack-data:
+
+  node1:
+    build: .
+    image: pi-bully-node
+    env_file: .env
+    environment:
+      NODE_ID: 1
+      NODE_ADDRESS: node1:50051
+      GRPC_PORT: 50051
+      HEALTH_PORT: 8080
+      POSTGRES_HOST: postgres
+      MEMBERLIST_BIND_ADDR: 0.0.0.0
+      MEMBERLIST_ADVERTISE_ADDR: node1
+      MEMBERLIST_BIND_PORT: 7946
+      MEMBERLIST_SEEDS: node1:7946,node2:7946,node3:7946
+      STORAGE_ENDPOINT: localstack:4566
+      LOG_FORMAT: json
+    ports:
+      - "8081:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      localstack:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  node2:
+    image: pi-bully-node
+    env_file: .env
+    environment:
+      NODE_ID: 2
+      NODE_ADDRESS: node2:50051
+      GRPC_PORT: 50051
+      HEALTH_PORT: 8080
+      POSTGRES_HOST: postgres
+      MEMBERLIST_BIND_ADDR: 0.0.0.0
+      MEMBERLIST_ADVERTISE_ADDR: node2
+      MEMBERLIST_BIND_PORT: 7946
+      MEMBERLIST_SEEDS: node1:7946,node2:7946,node3:7946
+      STORAGE_ENDPOINT: localstack:4566
+      LOG_FORMAT: json
+    ports:
+      - "8082:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      localstack:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  node3:
+    image: pi-bully-node
+    env_file: .env
+    environment:
+      NODE_ID: 3
+      NODE_ADDRESS: node3:50051
+      GRPC_PORT: 50051
+      HEALTH_PORT: 8080
+      POSTGRES_HOST: postgres
+      MEMBERLIST_BIND_ADDR: 0.0.0.0
+      MEMBERLIST_ADVERTISE_ADDR: node3
+      MEMBERLIST_BIND_PORT: 7946
+      MEMBERLIST_SEEDS: node1:7946,node2:7946,node3:7946
+      STORAGE_ENDPOINT: localstack:4566
+      LOG_FORMAT: json
+    ports:
+      - "8083:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      localstack:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  localstack-data:

@@ -53,6 +53,7 @@ func NewEngine(cfg config.ElectionConfig, selfID uint64, cl MemberSource, client
 
 func (e *engine) Start(ctx context.Context) {
 	go e.run(ctx)
+	go e.startElection(ctx)
 }
 
 func (e *engine) IsLeader() bool {
