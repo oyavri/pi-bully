@@ -15,6 +15,7 @@ type Config struct {
 	Memberlist MemberlistConfig
 	Election   ElectionConfig
 	Health     HealthConfig
+	Scheduler  SchedulerConfig
 }
 
 func Load() (Config, error) {
@@ -53,6 +54,7 @@ func Load() (Config, error) {
 
 	cfg.Election = loadElectionConfig()
 	cfg.Health = loadHealthConfig()
+	cfg.Scheduler = loadSchedulerConfig()
 
 	return cfg, nil
 }
