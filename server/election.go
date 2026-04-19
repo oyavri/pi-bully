@@ -23,7 +23,7 @@ func (s *ElectionServer) StartElection(ctx context.Context, req *pb.ElectionRequ
 		zap.Uint64("fromID", req.FromId),
 		zap.Uint64("term", req.Term),
 	)
-	term := s.engine.OnStartElection(req.FromId, req.Term)
+	term := s.engine.OnStartElection(req.FromId, req.Term, req.GrpcAddr)
 	return &pb.ElectionResponse{Ok: true, Term: term}, nil
 }
 
