@@ -78,6 +78,7 @@ type ElectionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	FromId        uint64                 `protobuf:"varint,1,opt,name=from_id,json=fromId,proto3" json:"from_id,omitempty"`
 	Term          uint64                 `protobuf:"varint,2,opt,name=term,proto3" json:"term,omitempty"`
+	GrpcAddr      string                 `protobuf:"bytes,3,opt,name=grpc_addr,json=grpcAddr,proto3" json:"grpc_addr,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -124,6 +125,13 @@ func (x *ElectionRequest) GetTerm() uint64 {
 		return x.Term
 	}
 	return 0
+}
+
+func (x *ElectionRequest) GetGrpcAddr() string {
+	if x != nil {
+		return x.GrpcAddr
+	}
+	return ""
 }
 
 type ElectionResponse struct {
@@ -494,10 +502,11 @@ var File_bully_proto protoreflect.FileDescriptor
 
 const file_bully_proto_rawDesc = "" +
 	"\n" +
-	"\vbully.proto\x12\x05bully\">\n" +
+	"\vbully.proto\x12\x05bully\"[\n" +
 	"\x0fElectionRequest\x12\x17\n" +
 	"\afrom_id\x18\x01 \x01(\x04R\x06fromId\x12\x12\n" +
-	"\x04term\x18\x02 \x01(\x04R\x04term\"6\n" +
+	"\x04term\x18\x02 \x01(\x04R\x04term\x12\x1b\n" +
+	"\tgrpc_addr\x18\x03 \x01(\tR\bgrpcAddr\"6\n" +
 	"\x10ElectionResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x12\n" +
 	"\x04term\x18\x02 \x01(\x04R\x04term\"E\n" +

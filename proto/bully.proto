@@ -8,6 +8,7 @@ option go_package = "github.com/oyavri/pi-bully/gen/bully";
 message ElectionRequest {
   uint64 from_id = 1;
   uint64 term = 2;
+  string grpc_addr = 3;
 }
 
 message ElectionResponse {
