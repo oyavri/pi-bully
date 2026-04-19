@@ -100,6 +100,10 @@ func (s *State) SetLeader(leaderID uint64, term uint64) bool {
 		return false
 	}
 
+	if term == s.term && s.leaderID != 0 && leaderID < s.leaderID {
+		return false
+	}
+
 	s.term = term
 	s.leaderID = leaderID
 	s.phase = PhaseLeader
