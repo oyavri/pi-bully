@@ -15,6 +15,7 @@ type NodeStatus string
 const (
 	StatusNoLeader           NodeStatus = "no_leader"
 	StatusElectionInProgress NodeStatus = "election_in_progress"
+	StatusWaitingCoordinator NodeStatus = "waiting_for_coordinator"
 	StatusLeaderElected      NodeStatus = "leader_elected"
 )
 
@@ -45,15 +46,18 @@ func NewHandler(selfID uint64, engine election.Engine, cl cluster.Cluster, logge
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	leaderID := h.engine.CurrentLeader()
+	phase := h.engine.Phase()
 
 	var status NodeStatus
-	switch {
-	case leaderID == 0 && h.engine.InElection():
+	switch phase {
+	case election.PhaseElecting:
 		status = StatusElectionInProgress
-	case leaderID == 0:
-		status = StatusNoLeader
-	default:
+	case election.PhaseWaitingCoordinator:
+		status = StatusWaitingCoordinator
+	case election.PhaseLeader:
 		status = StatusLeaderElected
+	default:
+		status = StatusNoLeader
 	}
 
 	members := h.cluster.Members()

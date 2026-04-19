@@ -14,10 +14,12 @@ type Client interface {
 	AnnounceLeader(ctx context.Context, addr string, req *pb.CoordinatorRequest) error
 }
 
-type grpcClient struct{}
+type grpcClient struct {
+	selfAddr string
+}
 
-func NewClient() Client {
-	return &grpcClient{}
+func NewClient(selfAddr string) Client {
+	return &grpcClient{selfAddr: selfAddr}
 }
 
 func (c *grpcClient) StartElection(ctx context.Context, addr string, req *pb.ElectionRequest) (*pb.ElectionResponse, error) {

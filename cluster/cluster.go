@@ -14,7 +14,7 @@ type Cluster interface {
 	Join(seeds []string) error
 	Leave() error
 	Members() map[uint64]Member
-	LostC() <-chan uint64
+	EventC() <-chan ClusterEvent
 }
 
 type cluster struct {
@@ -27,7 +27,6 @@ func New(cfg config.MemberlistConfig, nodeCfg config.NodeConfig, serverCfg confi
 	log := logger.With(zap.String("component", "cluster"))
 
 	grpcAddr := nodeCfg.Address
-
 	meta, err := encodeNodeMeta(NodeMeta{GRPCAddr: grpcAddr})
 	if err != nil {
 		return nil, fmt.Errorf("cluster: encode node meta: %w", err)
@@ -106,8 +105,8 @@ func (c *cluster) Members() map[uint64]Member {
 	return c.handler.Members()
 }
 
-func (c *cluster) LostC() <-chan uint64 {
-	return c.handler.LostC()
+func (c *cluster) EventC() <-chan ClusterEvent {
+	return c.handler.EventC()
 }
 
 type metaDelegate struct {

@@ -14,23 +14,35 @@ type Member struct {
 	GRPCAddr string
 }
 
+type EventType uint8
+
+const (
+	EventJoin EventType = iota
+	EventLeave
+)
+
+type ClusterEvent struct {
+	Type     EventType
+	MemberID uint64
+}
+
 type EventHandler struct {
 	mu      sync.RWMutex
 	members map[uint64]Member
-	lostC   chan uint64
+	eventC  chan ClusterEvent
 	logger  *zap.Logger
 }
 
 func NewEventHandler(logger *zap.Logger) *EventHandler {
 	return &EventHandler{
 		members: make(map[uint64]Member),
-		lostC:   make(chan uint64, 1),
+		eventC:  make(chan ClusterEvent, 16),
 		logger:  logger,
 	}
 }
 
-func (h *EventHandler) LostC() <-chan uint64 {
-	return h.lostC
+func (h *EventHandler) EventC() <-chan ClusterEvent {
+	return h.eventC
 }
 
 func (h *EventHandler) NotifyJoin(node *memberlist.Node) {
@@ -58,6 +70,11 @@ func (h *EventHandler) NotifyJoin(node *memberlist.Node) {
 		zap.Uint64("memberID", id),
 		zap.String("grpcAddr", meta.GRPCAddr),
 	)
+
+	select {
+	case h.eventC <- ClusterEvent{Type: EventJoin, MemberID: id}:
+	default:
+	}
 }
 
 func (h *EventHandler) NotifyLeave(node *memberlist.Node) {
@@ -71,13 +88,14 @@ func (h *EventHandler) NotifyLeave(node *memberlist.Node) {
 
 	h.mu.Lock()
 	delete(h.members, id)
-	select {
-	case h.lostC <- id:
-	default:
-	}
 	h.mu.Unlock()
 
 	log.Info("member left", zap.Uint64("memberID", id))
+
+	select {
+	case h.eventC <- ClusterEvent{Type: EventLeave, MemberID: id}:
+	default:
+	}
 }
 
 func (h *EventHandler) NotifyUpdate(node *memberlist.Node) {

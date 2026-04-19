@@ -69,14 +69,9 @@ func main() {
 		logger.Fatal("failed to create cluster", zap.Error(err))
 	}
 
-	if err := cl.Join(cfg.Memberlist.Seeds); err != nil {
-		logger.Fatal("failed to join cluster")
-	}
-
 	// Election
-	electionClient := election.NewClient()
-	electionEngine := election.NewEngine(cfg.Election, cfg.Node.ID, cl, electionClient, logger)
-	electionEngine.Start(ctx)
+	electionClient := election.NewClient(cfg.Node.Address)
+	electionEngine := election.NewEngine(cfg.Election, cfg.Node.ID, cfg.Node.Address, cl, electionClient, logger)
 
 	// Health
 	healthHandler := health.NewHandler(cfg.Node.ID, electionEngine, cl, logger)
@@ -101,6 +96,12 @@ func main() {
 			logger.Error("gRPC server error", zap.Error(err))
 		}
 	}()
+
+	if err := cl.Join(cfg.Memberlist.Seeds); err != nil {
+		logger.Fatal("failed to join cluster")
+	}
+
+	electionEngine.Start(ctx)
 
 	<-ctx.Done()
 	logger.Info("shutting down")
