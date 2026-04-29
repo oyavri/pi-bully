@@ -265,6 +265,7 @@ var WorkerService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
+	SchedulerService_RenewLease_FullMethodName   = "/bully.SchedulerService/RenewLease"
 	SchedulerService_ReportResult_FullMethodName = "/bully.SchedulerService/ReportResult"
 )
 
@@ -274,6 +275,7 @@ const (
 //
 // --- Scheduler ---
 type SchedulerServiceClient interface {
+	RenewLease(ctx context.Context, in *RenewLeaseRequest, opts ...grpc.CallOption) (*RenewLeaseResponse, error)
 	ReportResult(ctx context.Context, in *ReportResultRequest, opts ...grpc.CallOption) (*ReportResultResponse, error)
 }
 
@@ -283,6 +285,16 @@ type schedulerServiceClient struct {
 
 func NewSchedulerServiceClient(cc grpc.ClientConnInterface) SchedulerServiceClient {
 	return &schedulerServiceClient{cc}
+}
+
+func (c *schedulerServiceClient) RenewLease(ctx context.Context, in *RenewLeaseRequest, opts ...grpc.CallOption) (*RenewLeaseResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RenewLeaseResponse)
+	err := c.cc.Invoke(ctx, SchedulerService_RenewLease_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *schedulerServiceClient) ReportResult(ctx context.Context, in *ReportResultRequest, opts ...grpc.CallOption) (*ReportResultResponse, error) {
@@ -301,6 +313,7 @@ func (c *schedulerServiceClient) ReportResult(ctx context.Context, in *ReportRes
 //
 // --- Scheduler ---
 type SchedulerServiceServer interface {
+	RenewLease(context.Context, *RenewLeaseRequest) (*RenewLeaseResponse, error)
 	ReportResult(context.Context, *ReportResultRequest) (*ReportResultResponse, error)
 	mustEmbedUnimplementedSchedulerServiceServer()
 }
@@ -312,6 +325,9 @@ type SchedulerServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedSchedulerServiceServer struct{}
 
+func (UnimplementedSchedulerServiceServer) RenewLease(context.Context, *RenewLeaseRequest) (*RenewLeaseResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RenewLease not implemented")
+}
 func (UnimplementedSchedulerServiceServer) ReportResult(context.Context, *ReportResultRequest) (*ReportResultResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReportResult not implemented")
 }
@@ -334,6 +350,24 @@ func RegisterSchedulerServiceServer(s grpc.ServiceRegistrar, srv SchedulerServic
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&SchedulerService_ServiceDesc, srv)
+}
+
+func _SchedulerService_RenewLease_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RenewLeaseRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SchedulerServiceServer).RenewLease(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SchedulerService_RenewLease_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SchedulerServiceServer).RenewLease(ctx, req.(*RenewLeaseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _SchedulerService_ReportResult_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -361,6 +395,10 @@ var SchedulerService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "bully.SchedulerService",
 	HandlerType: (*SchedulerServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "RenewLease",
+			Handler:    _SchedulerService_RenewLease_Handler,
+		},
 		{
 			MethodName: "ReportResult",
 			Handler:    _SchedulerService_ReportResult_Handler,
