@@ -1,5 +1,6 @@
 CREATE TYPE task_state AS ENUM (
     'QUEUED',
+    'SCHEDULING',
     'ASSIGNED',
     'RUNNING',
     'FAILED',
@@ -21,10 +22,24 @@ CREATE TABLE task_status (
     id          UUID        PRIMARY KEY DEFAULT uuidv7(),
     task_id     UUID        NOT NULL REFERENCES task(id) ON DELETE CASCADE,
     status      task_state  NOT NULL,
-    assigned_to TEXT,
+    assigned_to BIGINT,
     error       TEXT,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE task_lease (
+    task_id     UUID        PRIMARY KEY REFERENCES task(id) ON DELETE CASCADE,
+    worker_id   BIGINT      NOT NULL,
+    expires_at  TIMESTAMPTZ NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_task_lease_worker_id
+    ON task_lease (worker_id);
+
+CREATE INDEX idx_task_lease_expires_at
+    ON task_lease (expires_at);
 
 CREATE INDEX idx_task_status_task_created
     ON task_status (task_id, created_at DESC);
