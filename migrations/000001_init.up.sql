@@ -22,6 +22,7 @@ CREATE TABLE task_status (
     task_id     UUID        NOT NULL REFERENCES task(id) ON DELETE CASCADE,
     status      task_state  NOT NULL,
     assigned_to TEXT,
+    error       TEXT,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
