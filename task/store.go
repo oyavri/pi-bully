@@ -30,6 +30,12 @@ var (
 	checkLeaseOwnerQuery string
 	//go:embed sql/latest_status.sql
 	latestStatusQuery string
+	//go:embed sql/select_expired_leases.sql
+	selectExpiredLeasesQuery string
+	//go:embed sql/select_active_leases.sql
+	selectActiveLeasesQuery string
+	//go:embed sql/select_stale_scheduling.sql
+	selectStaleSchedulingQuery string
 )
 
 type PostgresStore struct {
@@ -324,7 +330,77 @@ func (s *PostgresStore) MarkFailed(ctx context.Context, taskID uuid.UUID, worker
 }
 
 func (s *PostgresStore) RecoverExpiredLeases(ctx context.Context) (int, error) {
-	return 0, nil
+	log := s.log("RecoverExpiredLeases")
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		log.Error("failed to begin transaction", zap.Error(err))
+		return 0, fmt.Errorf("recover expired leases: begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	rows, err := tx.Query(ctx, selectExpiredLeasesQuery)
+	if err != nil {
+		log.Error("failed to query expired leases", zap.Error(err))
+		return 0, fmt.Errorf("recover expired leases: query: %w", err)
+	}
+	defer rows.Close()
+
+	var leases []leaseRow
+
+	for rows.Next() {
+		var taskID uuid.UUID
+		var workerID uint64
+		if err := rows.Scan(&taskID, &workerID); err != nil {
+			log.Error("failed to scan expired lease", zap.Error(err))
+			return 0, fmt.Errorf("recover expired leases: scan: %w", err)
+		}
+
+		leases = append(leases, leaseRow{TaskID: taskID, WorkerID: workerID})
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Error("expired lease iteration error", zap.Error(err))
+		return 0, fmt.Errorf("recover expired leases: rows: %w", err)
+	}
+
+	if len(leases) == 0 {
+		if err := tx.Commit(ctx); err != nil {
+			log.Error("failed to commit empty recovery transaction", zap.Error(err))
+			return 0, fmt.Errorf("recover expired leases: commit: %w", err)
+		}
+
+		return 0, nil
+	}
+
+	for _, lease := range leases {
+		if err := insertStatus(ctx, tx, lease.TaskID, StateWorkerLost, &lease.WorkerID, "lease expired"); err != nil {
+			log.Error(
+				"failed to insert WORKER_LOST",
+				zap.String("taskID", lease.TaskID.String()),
+				zap.Error(err),
+			)
+			return 0, fmt.Errorf("recover expired leases: mark worker lost %s: %w", lease.TaskID, err)
+		}
+
+		if _, err := tx.Exec(ctx, deleteLeaseQuery, lease.TaskID, int64(lease.WorkerID)); err != nil {
+			log.Error("failed to delete expired lease", zap.String("taskID", lease.TaskID.String()), zap.Error(err))
+			return 0, fmt.Errorf("recover expired leases: delete lease %s: %w", lease.TaskID, err)
+		}
+
+		if err := insertStatus(ctx, tx, lease.TaskID, StateQueued, nil, ""); err != nil {
+			log.Error("failed to requeue task after expired lease", zap.String("taskID", lease.TaskID.String()), zap.Error(err))
+			return 0, fmt.Errorf("recover expired leases: requeue %s: %w", lease.TaskID, err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Error("failed to commit recovery transaction", zap.Error(err))
+		return 0, fmt.Errorf("recover expired leases: commit: %w", err)
+	}
+
+	log.Info("recovered expired leases", zap.Int("count", len(leases)))
+	return len(leases), nil
 }
 
 func (s *PostgresStore) RecoverDeadWorkerLeases(ctx context.Context, alive map[uint64]struct{}) (int, error) {
@@ -393,4 +469,9 @@ func ensureLatestStatusIn(ctx context.Context, tx pgx.Tx, taskID uuid.UUID, allo
 	}
 
 	return nil
+}
+
+type leaseRow struct {
+	TaskID   uuid.UUID
+	WorkerID uint64
 }
