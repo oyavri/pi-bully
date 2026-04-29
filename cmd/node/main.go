@@ -54,7 +54,7 @@ func main() {
 	defer pool.Close()
 	logger.Info("connected to postgres")
 
-	taskStore := task.NewPostgresStore(pool, logger)
+	taskStore := task.NewPostgresStore(pool, cfg.Scheduler.LeaseDuration, logger)
 
 	// Storage
 	storageClient, err := storage.New(cfg.Storage, logger)
