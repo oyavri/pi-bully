@@ -7,8 +7,13 @@ import (
 )
 
 type Store interface {
-	ClaimQueued(ctx context.Context, workerID string, batchSize int) ([]Task, error)
-	MarkRunning(ctx context.Context, taskID uuid.UUID, workerID string) error
-	MarkCompleted(ctx context.Context, taskID uuid.UUID, workerID string) error
-	MarkFailed(ctx context.Context, taskID uuid.UUID, workerID string) error
+	ClaimQueued(ctx context.Context, schedulerID uint64, batchSize int) ([]Task, error)
+	RenewLease(ctx context.Context, taskID uuid.UUID, workerID uint64) error
+	MarkAssigned(ctx context.Context, taskID uuid.UUID, workerID uint64) error
+	MarkRunning(ctx context.Context, taskID uuid.UUID, workerID uint64) error
+	MarkCompleted(ctx context.Context, taskID uuid.UUID, workerID uint64) error
+	MarkFailed(ctx context.Context, taskID uuid.UUID, workerID uint64) error
+	RecoverExpiredLeases(ctx context.Context) (int, error)
+	RecoverDeadWorkerLeases(ctx context.Context, alive map[uint64]struct{}) (int, error)
+	RecoverStaleScheduling(ctx context.Context) (int, error)
 }

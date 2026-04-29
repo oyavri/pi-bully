@@ -4,6 +4,8 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"slices"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -18,20 +20,35 @@ var (
 	insertStatusQuery string
 	//go:embed sql/count_failed.sql
 	countFailedQuery string
+	//go:embed sql/upsert_lease.sql
+	upsertLeaseQuery string
+	//go:embed sql/renew_lease.sql
+	renewLeaseQuery string
+	//go:embed sql/delete_lease.sql
+	deleteLeaseQuery string
+	//go:embed sql/check_lease_owner.sql
+	checkLeaseOwnerQuery string
+	//go:embed sql/latest_status.sql
+	latestStatusQuery string
 )
 
 type PostgresStore struct {
-	pool   *pgxpool.Pool
-	logger *zap.Logger
+	pool          *pgxpool.Pool
+	leaseDuration time.Duration
+	logger        *zap.Logger
 }
 
-func NewPostgresStore(pool *pgxpool.Pool, logger *zap.Logger) *PostgresStore {
-	return &PostgresStore{pool: pool, logger: logger}
+func NewPostgresStore(pool *pgxpool.Pool, leaseDuration time.Duration, logger *zap.Logger) *PostgresStore {
+	return &PostgresStore{
+		pool:          pool,
+		leaseDuration: leaseDuration,
+		logger:        logger,
+	}
 }
 
-func (s *PostgresStore) ClaimQueued(ctx context.Context, workerID string, batchSize int) ([]Task, error) {
+func (s *PostgresStore) ClaimQueued(ctx context.Context, schedulerID uint64, batchSize int) ([]Task, error) {
 	log := s.log("ClaimQueued").With(
-		zap.String("workerID", workerID),
+		zap.Uint64("schedulerID", schedulerID),
 		zap.Int("batchSize", batchSize),
 	)
 
@@ -81,12 +98,12 @@ func (s *PostgresStore) ClaimQueued(ctx context.Context, workerID string, batchS
 	}
 
 	for _, t := range tasks {
-		if err := insertStatus(ctx, tx, t.ID, StateAssigned, workerID); err != nil {
-			log.Error("failed to mark the task as assigned",
+		if err := insertStatus(ctx, tx, t.ID, StateScheduling, &schedulerID, ""); err != nil {
+			log.Error("failed to mark the task as scheduling",
 				zap.String("taskID", t.ID.String()),
 				zap.Error(err),
 			)
-			return nil, fmt.Errorf("claim queued: mark assigned %s: %w", t.ID, err)
+			return nil, fmt.Errorf("claim queued: mark scheduling %s: %w", t.ID, err)
 		}
 	}
 
@@ -99,9 +116,73 @@ func (s *PostgresStore) ClaimQueued(ctx context.Context, workerID string, batchS
 	return tasks, nil
 }
 
-func (s *PostgresStore) MarkRunning(ctx context.Context, taskID uuid.UUID, workerID string) error {
+func (s *PostgresStore) RenewLease(ctx context.Context, taskID uuid.UUID, workerID uint64) error {
+	log := s.log("RenewLease").With(
+		zap.Uint64("workerID", workerID),
+		zap.String("taskID", taskID.String()),
+	)
+
+	leaseDuration := int64(s.leaseDuration / time.Second)
+
+	tag, err := s.pool.Exec(ctx, renewLeaseQuery, taskID, int64(workerID), leaseDuration)
+	if err != nil {
+		log.Error("failed to renew task lease", zap.Error(err))
+		return fmt.Errorf("renew lease: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		err := fmt.Errorf("task %s is not leased to worker %d", taskID, workerID)
+		log.Warn("lease renewal rejected", zap.Error(err))
+		return fmt.Errorf("renew lease: %w", err)
+	}
+
+	return nil
+}
+
+func (s *PostgresStore) MarkAssigned(ctx context.Context, taskID uuid.UUID, workerID uint64) error {
+	log := s.log("MarkAssigned").With(
+		zap.Uint64("workerID", workerID),
+		zap.String("taskID", taskID.String()),
+	)
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		log.Error("failed to begin transaction", zap.Error(err))
+		return fmt.Errorf("mark assigned: begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	status, err := latestStatus(ctx, tx, taskID)
+	if err != nil {
+		return fmt.Errorf("mark assigned: %w", err)
+	}
+	if status != StateScheduling {
+		return fmt.Errorf("mark assigned: invalid latest status %s for task %s", status, taskID)
+	}
+
+	if err := insertStatus(ctx, tx, taskID, StateAssigned, &workerID, ""); err != nil {
+		log.Error("failed to insert assigned status", zap.Error(err))
+		return fmt.Errorf("mark assigned: %w", err)
+	}
+
+	leaseDuration := int64(s.leaseDuration / time.Second)
+	_, err = tx.Exec(ctx, upsertLeaseQuery, taskID, int64(workerID), leaseDuration)
+	if err != nil {
+		log.Error("failed to upsert task lease", zap.Error(err))
+		return fmt.Errorf("mark assigned: upsert lease: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Error("failed to commit", zap.Error(err))
+		return fmt.Errorf("mark assigned: commit: %w", err)
+	}
+
+	return nil
+}
+
+func (s *PostgresStore) MarkRunning(ctx context.Context, taskID uuid.UUID, workerID uint64) error {
 	log := s.log("MarkRunning").With(
-		zap.String("workerID", workerID),
+		zap.Uint64("workerID", workerID),
 		zap.String("taskID", taskID.String()),
 	)
 
@@ -112,7 +193,17 @@ func (s *PostgresStore) MarkRunning(ctx context.Context, taskID uuid.UUID, worke
 	}
 	defer tx.Rollback(ctx)
 
-	if err := insertStatus(ctx, tx, taskID, StateRunning, workerID); err != nil {
+	if err := ensureLeaseOwner(ctx, tx, taskID, workerID); err != nil {
+		log.Warn("lease ownership validation failed", zap.Error(err))
+		return fmt.Errorf("mark running: %w", err)
+	}
+
+	if err := ensureLatestStatusIn(ctx, tx, taskID, StateAssigned, StateRunning); err != nil {
+		log.Warn("latest status validation failed", zap.Error(err))
+		return fmt.Errorf("mark running: %w", err)
+	}
+
+	if err := insertStatus(ctx, tx, taskID, StateRunning, &workerID, ""); err != nil {
 		log.Error("failed to mark the task as running", zap.Error(err))
 		return fmt.Errorf("mark running: %w", err)
 	}
@@ -122,13 +213,12 @@ func (s *PostgresStore) MarkRunning(ctx context.Context, taskID uuid.UUID, worke
 		return fmt.Errorf("mark running: commit: %w", err)
 	}
 
-	log.Info("task marked as running")
 	return nil
 }
 
-func (s *PostgresStore) MarkCompleted(ctx context.Context, taskID uuid.UUID, workerID string) error {
+func (s *PostgresStore) MarkCompleted(ctx context.Context, taskID uuid.UUID, workerID uint64) error {
 	log := s.log("MarkCompleted").With(
-		zap.String("workerID", workerID),
+		zap.Uint64("workerID", workerID),
 		zap.String("taskID", taskID.String()),
 	)
 
@@ -139,9 +229,24 @@ func (s *PostgresStore) MarkCompleted(ctx context.Context, taskID uuid.UUID, wor
 	}
 	defer tx.Rollback(ctx)
 
-	if err := insertStatus(ctx, tx, taskID, StateCompleted, workerID); err != nil {
+	if err := ensureLeaseOwner(ctx, tx, taskID, workerID); err != nil {
+		log.Warn("lease ownership validation failed", zap.Error(err))
+		return fmt.Errorf("mark completed: %w", err)
+	}
+
+	if err := ensureLatestStatusIn(ctx, tx, taskID, StateRunning); err != nil {
+		log.Warn("latest status validation failed", zap.Error(err))
+		return fmt.Errorf("mark completed: %w", err)
+	}
+
+	if err := insertStatus(ctx, tx, taskID, StateCompleted, &workerID, ""); err != nil {
 		log.Error("failed to mark the task as completed", zap.Error(err))
 		return fmt.Errorf("mark completed: %w", err)
+	}
+
+	if _, err := tx.Exec(ctx, deleteLeaseQuery, taskID, int64(workerID)); err != nil {
+		log.Error("failed to delete task lease", zap.Error(err))
+		return fmt.Errorf("mark completed: delete lease: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -149,13 +254,12 @@ func (s *PostgresStore) MarkCompleted(ctx context.Context, taskID uuid.UUID, wor
 		return fmt.Errorf("mark completed: commit: %w", err)
 	}
 
-	log.Info("task marked as completed")
 	return nil
 }
 
-func (s *PostgresStore) MarkFailed(ctx context.Context, taskID uuid.UUID, workerID string) error {
+func (s *PostgresStore) MarkFailed(ctx context.Context, taskID uuid.UUID, workerID uint64) error {
 	log := s.log("MarkFailed").With(
-		zap.String("workerID", workerID),
+		zap.Uint64("workerID", workerID),
 		zap.String("taskID", taskID.String()),
 	)
 
@@ -166,9 +270,24 @@ func (s *PostgresStore) MarkFailed(ctx context.Context, taskID uuid.UUID, worker
 	}
 	defer tx.Rollback(ctx)
 
-	if err := insertStatus(ctx, tx, taskID, StateFailed, workerID); err != nil {
+	if err := ensureLeaseOwner(ctx, tx, taskID, workerID); err != nil {
+		log.Warn("lease ownership validation failed", zap.Error(err))
+		return fmt.Errorf("mark failed: %w", err)
+	}
+
+	if err := ensureLatestStatusIn(ctx, tx, taskID, StateAssigned, StateRunning); err != nil {
+		log.Warn("latest status validation failed", zap.Error(err))
+		return fmt.Errorf("mark failed: %w", err)
+	}
+
+	if err := insertStatus(ctx, tx, taskID, StateFailed, &workerID, ""); err != nil {
 		log.Error("failed to mark the task as failed", zap.Error(err))
 		return fmt.Errorf("mark failed: %w", err)
+	}
+
+	if _, err := tx.Exec(ctx, deleteLeaseQuery, taskID, int64(workerID)); err != nil {
+		log.Error("failed to delete task lease", zap.Error(err))
+		return fmt.Errorf("mark failed: delete lease: %w", err)
 	}
 
 	var failedCount, maxRetries int
@@ -180,7 +299,7 @@ func (s *PostgresStore) MarkFailed(ctx context.Context, taskID uuid.UUID, worker
 
 	// Requeue if max retry count is not reached
 	if failedCount < maxRetries {
-		if err := insertStatus(ctx, tx, taskID, StateQueued, ""); err != nil {
+		if err := insertStatus(ctx, tx, taskID, StateQueued, nil, ""); err != nil {
 			log.Error("failed to requeue failed task", zap.Error(err))
 			return fmt.Errorf("mark failed: requeue: %w", err)
 		}
@@ -204,13 +323,34 @@ func (s *PostgresStore) MarkFailed(ctx context.Context, taskID uuid.UUID, worker
 	return nil
 }
 
-func insertStatus(ctx context.Context, tx pgx.Tx, taskID uuid.UUID, state State, assignedTo string) error {
+func (s *PostgresStore) RecoverExpiredLeases(ctx context.Context) (int, error) {
+	return 0, nil
+}
+
+func (s *PostgresStore) RecoverDeadWorkerLeases(ctx context.Context, alive map[uint64]struct{}) (int, error) {
+	return 0, nil
+}
+
+func (s *PostgresStore) RecoverStaleScheduling(ctx context.Context) (int, error) {
+	return 0, nil
+}
+
+func (s *PostgresStore) log(method string) *zap.Logger {
+	return s.logger.With(zap.String("method", method))
+}
+
+func insertStatus(ctx context.Context, tx pgx.Tx, taskID uuid.UUID, state State, assignedTo *uint64, errMsg string) error {
 	var assigned any
-	if assignedTo != "" {
-		assigned = assignedTo
+	if assignedTo != nil {
+		assigned = int64(*assignedTo)
 	}
 
-	_, err := tx.Exec(ctx, insertStatusQuery, taskID, string(state), assigned)
+	var errVal any
+	if errMsg != "" {
+		errVal = errMsg
+	}
+
+	_, err := tx.Exec(ctx, insertStatusQuery, taskID, string(state), assigned, errVal)
 	if err != nil {
 		return fmt.Errorf("insert status (%s -> %s): %w", taskID, state, err)
 	}
@@ -218,6 +358,39 @@ func insertStatus(ctx context.Context, tx pgx.Tx, taskID uuid.UUID, state State,
 	return nil
 }
 
-func (s *PostgresStore) log(method string) *zap.Logger {
-	return s.logger.With(zap.String("method", method))
+func latestStatus(ctx context.Context, tx pgx.Tx, taskID uuid.UUID) (State, error) {
+	var status string
+	err := tx.QueryRow(ctx, latestStatusQuery, taskID).Scan(&status)
+	if err != nil {
+		return "", fmt.Errorf("latest status: %w", err)
+	}
+
+	return State(status), nil
+}
+
+func ensureLeaseOwner(ctx context.Context, tx pgx.Tx, taskID uuid.UUID, workerID uint64) error {
+	var ok bool
+	err := tx.QueryRow(ctx, checkLeaseOwnerQuery, taskID, int64(workerID)).Scan(&ok)
+	if err != nil {
+		return fmt.Errorf("check lease owner: %w", err)
+	}
+
+	if !ok {
+		return fmt.Errorf("task %s is not leased to worker %d", taskID, workerID)
+	}
+
+	return nil
+}
+
+func ensureLatestStatusIn(ctx context.Context, tx pgx.Tx, taskID uuid.UUID, allowed ...State) error {
+	status, err := latestStatus(ctx, tx, taskID)
+	if err != nil {
+		return err
+	}
+
+	if !slices.Contains(allowed, status) {
+		return fmt.Errorf("task %s has invalid latest status %s", taskID, status)
+	}
+
+	return nil
 }

@@ -1,5 +1,4 @@
-WITH
-latest AS (
+WITH latest AS (
     SELECT DISTINCT ON (task_id)
         task_id,
         status
@@ -18,6 +17,6 @@ JOIN latest l ON l.task_id = t.id
 LEFT JOIN failed_counts fc ON fc.task_id = t.id
 WHERE l.status IN ('QUEUED', 'WORKER_LOST')
     AND COALESCE(fc.failed, 0) < t.max_retries
-ORDER BY t.created_at ASC
+ORDER BY t.created_at ASC, t.id ASC
 LIMIT $1
-FOR UPDATE OF t SKIP LOCKED
+FOR UPDATE OF t SKIP LOCKED;
