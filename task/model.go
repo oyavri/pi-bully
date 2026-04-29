@@ -10,6 +10,7 @@ type State string
 
 const (
 	StateQueued     State = "QUEUED"
+	StateScheduling State = "SCHEDULING"
 	StateAssigned   State = "ASSIGNED"
 	StateRunning    State = "RUNNING"
 	StateFailed     State = "FAILED"
