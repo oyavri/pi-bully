@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/oyavri/pi-bully/cluster"
 	"go.uber.org/zap"
 )
 
@@ -398,7 +399,7 @@ func (s *PostgresStore) RecoverExpiredLeases(ctx context.Context) (int, error) {
 	return len(leases), nil
 }
 
-func (s *PostgresStore) RecoverDeadWorkerLeases(ctx context.Context, alive map[uint64]struct{}) (int, error) {
+func (s *PostgresStore) RecoverDeadWorkerLeases(ctx context.Context, alive map[uint64]cluster.Member) (int, error) {
 	log := s.log("RecoverDeadWorkerLeases")
 
 	tx, err := s.pool.Begin(ctx)

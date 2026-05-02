@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/oyavri/pi-bully/cluster"
 )
 
 type Store interface {
@@ -14,6 +15,6 @@ type Store interface {
 	MarkCompleted(ctx context.Context, taskID uuid.UUID, workerID uint64) error
 	MarkFailed(ctx context.Context, taskID uuid.UUID, workerID uint64) error
 	RecoverExpiredLeases(ctx context.Context) (int, error)
-	RecoverDeadWorkerLeases(ctx context.Context, alive map[uint64]struct{}) (int, error)
+	RecoverDeadWorkerLeases(ctx context.Context, alive map[uint64]cluster.Member) (int, error)
 	RecoverStaleScheduling(ctx context.Context) (int, error)
 }
