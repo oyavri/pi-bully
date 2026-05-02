@@ -365,11 +365,6 @@ func (s *PostgresStore) RecoverExpiredLeases(ctx context.Context) (int, error) {
 	}
 
 	if len(leases) == 0 {
-		if err := tx.Commit(ctx); err != nil {
-			log.Error("failed to commit empty recovery transaction", zap.Error(err))
-			return 0, fmt.Errorf("recover expired leases: commit: %w", err)
-		}
-
 		return 0, nil
 	}
 
@@ -404,11 +399,125 @@ func (s *PostgresStore) RecoverExpiredLeases(ctx context.Context) (int, error) {
 }
 
 func (s *PostgresStore) RecoverDeadWorkerLeases(ctx context.Context, alive map[uint64]struct{}) (int, error) {
-	return 0, nil
+	log := s.log("RecoverDeadWorkerLeases")
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		log.Error("failed to begin transaction", zap.Error(err))
+		return 0, fmt.Errorf("recover dead worker leases: begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	rows, err := tx.Query(ctx, selectActiveLeasesQuery)
+	if err != nil {
+		log.Error("failed to query active leases", zap.Error(err))
+		return 0, fmt.Errorf("recover dead worker leases: query: %w", err)
+	}
+	defer rows.Close()
+
+	var deadLeases []leaseRow
+	for rows.Next() {
+		var row leaseRow
+		var workerID int64
+		if err := rows.Scan(&row.TaskID, &workerID); err != nil {
+			log.Error("failed to scan active lease", zap.Error(err))
+			return 0, fmt.Errorf("recover dead worker leases: scan: %w", err)
+		}
+		row.WorkerID = uint64(workerID)
+
+		if _, ok := alive[row.WorkerID]; !ok {
+			deadLeases = append(deadLeases, row)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		log.Error("active lease iteration error", zap.Error(err))
+		return 0, fmt.Errorf("recover dead worker leases: rows: %w", err)
+	}
+
+	if len(deadLeases) == 0 {
+		return 0, nil
+	}
+
+	for _, lease := range deadLeases {
+		if err := insertStatus(ctx, tx, lease.TaskID, StateWorkerLost, &lease.WorkerID, "worker not alive during leader takeover"); err != nil {
+			log.Error("failed to insert WORKER_LOST", zap.String("taskID", lease.TaskID.String()), zap.Error(err))
+			return 0, fmt.Errorf("recover dead worker leases: mark worker lost %s: %w", lease.TaskID, err)
+		}
+
+		if _, err := tx.Exec(ctx, deleteLeaseQuery, lease.TaskID, int64(lease.WorkerID)); err != nil {
+			log.Error("failed to delete dead worker lease", zap.String("taskID", lease.TaskID.String()), zap.Error(err))
+			return 0, fmt.Errorf("recover dead worker leases: delete lease %s: %w", lease.TaskID, err)
+		}
+
+		if err := insertStatus(ctx, tx, lease.TaskID, StateQueued, nil, ""); err != nil {
+			log.Error("failed to requeue task from dead worker", zap.String("taskID", lease.TaskID.String()), zap.Error(err))
+			return 0, fmt.Errorf("recover dead worker leases: requeue %s: %w", lease.TaskID, err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Error("failed to commit dead-worker recovery transaction", zap.Error(err))
+		return 0, fmt.Errorf("recover dead worker leases: commit: %w", err)
+	}
+
+	log.Info("recovered dead worker leases", zap.Int("count", len(deadLeases)))
+	return len(deadLeases), nil
 }
 
 func (s *PostgresStore) RecoverStaleScheduling(ctx context.Context) (int, error) {
-	return 0, nil
+	log := s.log("RecoverStaleScheduling")
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		log.Error("failed to begin transaction", zap.Error(err))
+		return 0, fmt.Errorf("recover stale scheduling: begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	rows, err := tx.Query(ctx, selectStaleSchedulingQuery)
+	if err != nil {
+		log.Error("failed to query stale scheduling tasks", zap.Error(err))
+		return 0, fmt.Errorf("recover stale scheduling: query: %w", err)
+	}
+	defer rows.Close()
+
+	var taskIDs []uuid.UUID
+	for rows.Next() {
+		var taskID uuid.UUID
+		if err := rows.Scan(&taskID); err != nil {
+			log.Error("failed to scan stale scheduling task", zap.Error(err))
+			return 0, fmt.Errorf("recover stale scheduling: scan: %w", err)
+		}
+		taskIDs = append(taskIDs, taskID)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Error("stale scheduling iteration error", zap.Error(err))
+		return 0, fmt.Errorf("recover stale scheduling: rows: %w", err)
+	}
+
+	if len(taskIDs) == 0 {
+		return 0, nil
+	}
+
+	for _, taskID := range taskIDs {
+		if err := insertStatus(ctx, tx, taskID, StateQueued, nil, "recovered stale scheduling"); err != nil {
+			log.Error(
+				"failed to requeue stale scheduling task",
+				zap.String("taskID", taskID.String()),
+				zap.Error(err),
+			)
+			return 0, fmt.Errorf("recover stale scheduling: requeue %s: %w", taskID, err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Error("failed to commit stale scheduling recovery transaction", zap.Error(err))
+		return 0, fmt.Errorf("recover stale scheduling: commit: %w", err)
+	}
+
+	log.Info("recovered stale scheduling tasks", zap.Int("count", len(taskIDs)))
+	return len(taskIDs), nil
 }
 
 func (s *PostgresStore) log(method string) *zap.Logger {

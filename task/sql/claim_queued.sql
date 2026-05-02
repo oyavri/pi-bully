@@ -3,7 +3,7 @@ WITH latest AS (
         task_id,
         status
     FROM task_status
-    ORDER BY task_id, created_at DESC
+    ORDER BY task_id, created_at DESC, id DESC
 ),
 failed_counts AS (
     SELECT task_id, COUNT(*) AS failed
