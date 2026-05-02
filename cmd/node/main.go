@@ -12,6 +12,8 @@ import (
 	"github.com/oyavri/pi-bully/config"
 	"github.com/oyavri/pi-bully/election"
 	"github.com/oyavri/pi-bully/health"
+	"github.com/oyavri/pi-bully/scheduler"
+	schedstrat "github.com/oyavri/pi-bully/scheduler/strategy"
 	"github.com/oyavri/pi-bully/server"
 	"github.com/oyavri/pi-bully/storage"
 	"github.com/oyavri/pi-bully/task"
@@ -73,6 +75,20 @@ func main() {
 	electionClient := election.NewClient(cfg.Node.Address)
 	electionEngine := election.NewEngine(cfg.Election, cfg.Node.ID, cfg.Node.Address, cl, electionClient, logger)
 
+	taskDispatcher := scheduler.NewGRPCTaskDispatcher()
+	rrStrategy := schedstrat.NewRoundRobin()
+
+	schedulerEngine := scheduler.NewEngine(
+		cfg.Node.ID,
+		electionEngine,
+		cl,
+		taskStore,
+		taskDispatcher,
+		rrStrategy,
+		cfg.Scheduler,
+		logger,
+	)
+
 	// Health
 	healthHandler := health.NewHandler(cfg.Node.ID, electionEngine, cl, logger)
 	health.Start(cfg.Health.Port, healthHandler, logger)
@@ -86,7 +102,7 @@ func main() {
 	grpcServer := grpc.NewServer()
 	pb.RegisterElectionServiceServer(grpcServer, server.NewElectionServer(electionEngine, logger))
 	pb.RegisterWorkerServiceServer(grpcServer, server.NewWorkerServer(logger))
-	pb.RegisterSchedulerServiceServer(grpcServer, server.NewSchedulerServer(logger))
+	pb.RegisterSchedulerServiceServer(grpcServer, server.NewSchedulerServer(taskStore, logger))
 	logger.Info("gRPC servers registered")
 
 	// Start gRPC server in background
@@ -102,6 +118,7 @@ func main() {
 	}
 
 	electionEngine.Start(ctx)
+	schedulerEngine.Start(ctx)
 
 	<-ctx.Done()
 	logger.Info("shutting down")
@@ -112,7 +129,5 @@ func main() {
 		logger.Error("failed to leave cluster cleanly")
 	}
 
-	// to suppress for now
-	_ = taskStore
 	_ = storageClient
 }
