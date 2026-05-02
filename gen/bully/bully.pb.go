@@ -27,7 +27,6 @@ const (
 	TaskOutcome_TASK_OUTCOME_UNSPECIFIED TaskOutcome = 0 // there should be no default status behavior
 	TaskOutcome_SUCCESS                  TaskOutcome = 1
 	TaskOutcome_FAILED                   TaskOutcome = 2
-	TaskOutcome_LOST                     TaskOutcome = 3
 )
 
 // Enum value maps for TaskOutcome.
@@ -36,13 +35,11 @@ var (
 		0: "TASK_OUTCOME_UNSPECIFIED",
 		1: "SUCCESS",
 		2: "FAILED",
-		3: "LOST",
 	}
 	TaskOutcome_value = map[string]int32{
 		"TASK_OUTCOME_UNSPECIFIED": 0,
 		"SUCCESS":                  1,
 		"FAILED":                   2,
-		"LOST":                     3,
 	}
 )
 
@@ -620,13 +617,12 @@ const file_bully_proto_rawDesc = "" +
 	"\tworker_id\x18\x02 \x01(\x04R\bworkerId\x12,\n" +
 	"\aoutcome\x18\x03 \x01(\x0e2\x12.bully.TaskOutcomeR\aoutcome\x12\x14\n" +
 	"\x05error\x18\x04 \x01(\tR\x05error\"\x16\n" +
-	"\x14ReportResultResponse*N\n" +
+	"\x14ReportResultResponse*D\n" +
 	"\vTaskOutcome\x12\x1c\n" +
 	"\x18TASK_OUTCOME_UNSPECIFIED\x10\x00\x12\v\n" +
 	"\aSUCCESS\x10\x01\x12\n" +
 	"\n" +
-	"\x06FAILED\x10\x02\x12\b\n" +
-	"\x04LOST\x10\x032\x9c\x01\n" +
+	"\x06FAILED\x10\x022\x9c\x01\n" +
 	"\x0fElectionService\x12@\n" +
 	"\rStartElection\x12\x16.bully.ElectionRequest\x1a\x17.bully.ElectionResponse\x12G\n" +
 	"\x0eAnnounceLeader\x12\x19.bully.CoordinatorRequest\x1a\x1a.bully.CoordinatorResponse2R\n" +

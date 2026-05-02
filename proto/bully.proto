@@ -62,7 +62,6 @@ enum TaskOutcome {
   TASK_OUTCOME_UNSPECIFIED = 0; // there should be no default status behavior
   SUCCESS = 1;
   FAILED = 2;
-  LOST = 3;
 }
 
 message ReportResultRequest {
