@@ -19,7 +19,7 @@ func NewElectionServer(engine election.Engine, logger *zap.Logger) *ElectionServ
 }
 
 func (s *ElectionServer) StartElection(ctx context.Context, req *pb.ElectionRequest) (*pb.ElectionResponse, error) {
-	s.logger.Info("received election request",
+	s.logger.Debug("received election request",
 		zap.Uint64("fromID", req.FromId),
 		zap.Uint64("term", req.Term),
 	)
@@ -28,7 +28,7 @@ func (s *ElectionServer) StartElection(ctx context.Context, req *pb.ElectionRequ
 }
 
 func (s *ElectionServer) AnnounceLeader(ctx context.Context, req *pb.CoordinatorRequest) (*pb.CoordinatorResponse, error) {
-	s.logger.Info("received announce leader",
+	s.logger.Debug("received announce leader",
 		zap.Uint64("leaderID", req.LeaderId),
 		zap.Uint64("term", req.Term),
 	)

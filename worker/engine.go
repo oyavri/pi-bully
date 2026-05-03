@@ -83,6 +83,10 @@ func (e *Engine) runTask(a Assignment) {
 		return
 	}
 
+	e.logger.Info("task started",
+		zap.String("taskID", taskID),
+	)
+
 	stopRenew := make(chan struct{})
 	defer close(stopRenew)
 
@@ -93,7 +97,7 @@ func (e *Engine) runTask(a Assignment) {
 
 	addr, ok = e.leaderAddr()
 	if !ok {
-		e.logger.Error("failed to resolve leader address before starting task",
+		e.logger.Error("failed to resolve leader address for result reporting",
 			zap.String("taskID", taskID),
 		)
 		return

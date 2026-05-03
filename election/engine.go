@@ -139,7 +139,7 @@ func (e *engine) OnAnnounceLeader(leaderID uint64, term uint64) {
 
 	ok := e.state.SetLeader(leaderID, term)
 	if !ok {
-		log.Warn("leader announcement rejected as stale",
+		log.Debug("leader announcement rejected as stale",
 			zap.Uint64("leaderID", leaderID),
 			zap.Uint64("term", term),
 		)

@@ -170,6 +170,13 @@ func (e *Engine) dispatchClaimedTasks(ctx context.Context, tasks []task.Task, wo
 					zap.Error(err),
 				)
 			}
+			continue
 		}
+
+		e.logger.Info("task dispatched",
+			zap.String("taskID", t.ID.String()),
+			zap.Uint64("workerID", worker.ID),
+			zap.String("grpcAddr", worker.GRPCAddr),
+		)
 	}
 }
