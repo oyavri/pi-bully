@@ -87,10 +87,10 @@ func (e *Engine) runTask(a Assignment) {
 		zap.String("taskID", taskID),
 	)
 
-	stopRenew := make(chan struct{})
-	defer close(stopRenew)
+	taskCtx, cancelTask := context.WithCancel(context.Background())
+	defer cancelTask()
 
-	go e.renewLoop(taskID, stopRenew)
+	go e.renewLoop(taskCtx, taskID)
 
 	// TODO: execution will be here
 	time.Sleep(3 * time.Second)
@@ -124,7 +124,7 @@ func (e *Engine) runTask(a Assignment) {
 	)
 }
 
-func (e *Engine) renewLoop(taskID string, stop <-chan struct{}) {
+func (e *Engine) renewLoop(ctx context.Context, taskID string) {
 	ticker := time.NewTicker(e.leaseRenewEvery)
 	defer ticker.Stop()
 
@@ -152,7 +152,7 @@ func (e *Engine) renewLoop(taskID string, stop <-chan struct{}) {
 					zap.Error(err),
 				)
 			}
-		case <-stop:
+		case <-ctx.Done():
 			return
 		}
 	}
