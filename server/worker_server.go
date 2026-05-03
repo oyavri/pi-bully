@@ -6,15 +6,21 @@ import (
 	"go.uber.org/zap"
 
 	pb "github.com/oyavri/pi-bully/gen/bully"
+	"github.com/oyavri/pi-bully/worker"
 )
+
+type TaskHandler interface {
+	HandleAssignment(a worker.Assignment)
+}
 
 type WorkerServer struct {
 	pb.UnimplementedWorkerServiceServer
-	logger *zap.Logger
+	handler TaskHandler
+	logger  *zap.Logger
 }
 
-func NewWorkerServer(logger *zap.Logger) *WorkerServer {
-	return &WorkerServer{logger: logger}
+func NewWorkerServer(handler TaskHandler, logger *zap.Logger) *WorkerServer {
+	return &WorkerServer{handler: handler, logger: logger}
 }
 
 func (s *WorkerServer) AssignTask(ctx context.Context, req *pb.AssignTaskRequest) (*pb.AssignTaskResponse, error) {
@@ -26,5 +32,14 @@ func (s *WorkerServer) AssignTask(ctx context.Context, req *pb.AssignTaskRequest
 		zap.Strings("args", req.Args),
 	)
 
+	assignment := worker.Assignment{
+		TaskID:        req.TaskId,
+		ExecutableURI: req.ExecutableUri,
+		InputURI:      req.InputUri,
+		OutputURI:     req.OutputUri,
+		Args:          req.Args,
+	}
+
+	s.handler.HandleAssignment(assignment)
 	return &pb.AssignTaskResponse{Accepted: true}, nil
 }

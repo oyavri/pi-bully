@@ -17,6 +17,7 @@ import (
 	"github.com/oyavri/pi-bully/server"
 	"github.com/oyavri/pi-bully/storage"
 	"github.com/oyavri/pi-bully/task"
+	"github.com/oyavri/pi-bully/worker"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
@@ -75,6 +76,7 @@ func main() {
 	electionClient := election.NewClient(cfg.Node.Address)
 	electionEngine := election.NewEngine(cfg.Election, cfg.Node.ID, cfg.Node.Address, cl, electionClient, logger)
 
+	// Scheduler
 	taskDispatcher := scheduler.NewGRPCTaskDispatcher()
 	rrStrategy := schedstrat.NewRoundRobin()
 
@@ -86,6 +88,18 @@ func main() {
 		taskDispatcher,
 		rrStrategy,
 		cfg.Scheduler,
+		logger,
+	)
+
+	// Worker
+	workerClient := server.NewWorkerClient()
+	workerEngine := worker.NewEngine(
+		cfg.Node.ID,
+		electionEngine,
+		cl,
+		workerClient,
+		cfg.Worker.LeaseRenewalInterval,
+		cfg.Worker.RPCTimeout,
 		logger,
 	)
 
@@ -101,7 +115,7 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	pb.RegisterElectionServiceServer(grpcServer, server.NewElectionServer(electionEngine, logger))
-	pb.RegisterWorkerServiceServer(grpcServer, server.NewWorkerServer(logger))
+	pb.RegisterWorkerServiceServer(grpcServer, server.NewWorkerServer(workerEngine, logger))
 	pb.RegisterSchedulerServiceServer(grpcServer, server.NewSchedulerServer(taskStore, logger))
 	logger.Info("gRPC servers registered")
 
