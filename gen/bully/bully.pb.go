@@ -391,94 +391,6 @@ func (x *AssignTaskResponse) GetAccepted() bool {
 	return false
 }
 
-type RenewLeaseRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	WorkerId      uint64                 `protobuf:"varint,2,opt,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RenewLeaseRequest) Reset() {
-	*x = RenewLeaseRequest{}
-	mi := &file_bully_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RenewLeaseRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RenewLeaseRequest) ProtoMessage() {}
-
-func (x *RenewLeaseRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bully_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RenewLeaseRequest.ProtoReflect.Descriptor instead.
-func (*RenewLeaseRequest) Descriptor() ([]byte, []int) {
-	return file_bully_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *RenewLeaseRequest) GetTaskId() string {
-	if x != nil {
-		return x.TaskId
-	}
-	return ""
-}
-
-func (x *RenewLeaseRequest) GetWorkerId() uint64 {
-	if x != nil {
-		return x.WorkerId
-	}
-	return 0
-}
-
-type RenewLeaseResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RenewLeaseResponse) Reset() {
-	*x = RenewLeaseResponse{}
-	mi := &file_bully_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RenewLeaseResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RenewLeaseResponse) ProtoMessage() {}
-
-func (x *RenewLeaseResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bully_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RenewLeaseResponse.ProtoReflect.Descriptor instead.
-func (*RenewLeaseResponse) Descriptor() ([]byte, []int) {
-	return file_bully_proto_rawDescGZIP(), []int{7}
-}
-
 type ReportResultRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
@@ -491,7 +403,7 @@ type ReportResultRequest struct {
 
 func (x *ReportResultRequest) Reset() {
 	*x = ReportResultRequest{}
-	mi := &file_bully_proto_msgTypes[8]
+	mi := &file_bully_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -503,7 +415,7 @@ func (x *ReportResultRequest) String() string {
 func (*ReportResultRequest) ProtoMessage() {}
 
 func (x *ReportResultRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bully_proto_msgTypes[8]
+	mi := &file_bully_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -516,7 +428,7 @@ func (x *ReportResultRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportResultRequest.ProtoReflect.Descriptor instead.
 func (*ReportResultRequest) Descriptor() ([]byte, []int) {
-	return file_bully_proto_rawDescGZIP(), []int{8}
+	return file_bully_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ReportResultRequest) GetTaskId() string {
@@ -555,7 +467,7 @@ type ReportResultResponse struct {
 
 func (x *ReportResultResponse) Reset() {
 	*x = ReportResultResponse{}
-	mi := &file_bully_proto_msgTypes[9]
+	mi := &file_bully_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -567,7 +479,7 @@ func (x *ReportResultResponse) String() string {
 func (*ReportResultResponse) ProtoMessage() {}
 
 func (x *ReportResultResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bully_proto_msgTypes[9]
+	mi := &file_bully_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -580,7 +492,183 @@ func (x *ReportResultResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportResultResponse.ProtoReflect.Descriptor instead.
 func (*ReportResultResponse) Descriptor() ([]byte, []int) {
+	return file_bully_proto_rawDescGZIP(), []int{7}
+}
+
+type RenewLeaseRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	WorkerId      uint64                 `protobuf:"varint,2,opt,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenewLeaseRequest) Reset() {
+	*x = RenewLeaseRequest{}
+	mi := &file_bully_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenewLeaseRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenewLeaseRequest) ProtoMessage() {}
+
+func (x *RenewLeaseRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bully_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenewLeaseRequest.ProtoReflect.Descriptor instead.
+func (*RenewLeaseRequest) Descriptor() ([]byte, []int) {
+	return file_bully_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *RenewLeaseRequest) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *RenewLeaseRequest) GetWorkerId() uint64 {
+	if x != nil {
+		return x.WorkerId
+	}
+	return 0
+}
+
+type RenewLeaseResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenewLeaseResponse) Reset() {
+	*x = RenewLeaseResponse{}
+	mi := &file_bully_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenewLeaseResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenewLeaseResponse) ProtoMessage() {}
+
+func (x *RenewLeaseResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bully_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenewLeaseResponse.ProtoReflect.Descriptor instead.
+func (*RenewLeaseResponse) Descriptor() ([]byte, []int) {
 	return file_bully_proto_rawDescGZIP(), []int{9}
+}
+
+type MarkRunningRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	WorkerId      uint64                 `protobuf:"varint,2,opt,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MarkRunningRequest) Reset() {
+	*x = MarkRunningRequest{}
+	mi := &file_bully_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MarkRunningRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MarkRunningRequest) ProtoMessage() {}
+
+func (x *MarkRunningRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_bully_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MarkRunningRequest.ProtoReflect.Descriptor instead.
+func (*MarkRunningRequest) Descriptor() ([]byte, []int) {
+	return file_bully_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *MarkRunningRequest) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *MarkRunningRequest) GetWorkerId() uint64 {
+	if x != nil {
+		return x.WorkerId
+	}
+	return 0
+}
+
+type MarkRunningResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MarkRunningResponse) Reset() {
+	*x = MarkRunningResponse{}
+	mi := &file_bully_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MarkRunningResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MarkRunningResponse) ProtoMessage() {}
+
+func (x *MarkRunningResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_bully_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MarkRunningResponse.ProtoReflect.Descriptor instead.
+func (*MarkRunningResponse) Descriptor() ([]byte, []int) {
+	return file_bully_proto_rawDescGZIP(), []int{11}
 }
 
 var File_bully_proto protoreflect.FileDescriptor
@@ -607,17 +695,21 @@ const file_bully_proto_rawDesc = "" +
 	"output_uri\x18\x04 \x01(\tR\toutputUri\x12\x12\n" +
 	"\x04args\x18\x05 \x03(\tR\x04args\"0\n" +
 	"\x12AssignTaskResponse\x12\x1a\n" +
-	"\baccepted\x18\x01 \x01(\bR\baccepted\"I\n" +
-	"\x11RenewLeaseRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x1b\n" +
-	"\tworker_id\x18\x02 \x01(\x04R\bworkerId\"\x14\n" +
-	"\x12RenewLeaseResponse\"\x8f\x01\n" +
+	"\baccepted\x18\x01 \x01(\bR\baccepted\"\x8f\x01\n" +
 	"\x13ReportResultRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x1b\n" +
 	"\tworker_id\x18\x02 \x01(\x04R\bworkerId\x12,\n" +
 	"\aoutcome\x18\x03 \x01(\x0e2\x12.bully.TaskOutcomeR\aoutcome\x12\x14\n" +
 	"\x05error\x18\x04 \x01(\tR\x05error\"\x16\n" +
-	"\x14ReportResultResponse*D\n" +
+	"\x14ReportResultResponse\"I\n" +
+	"\x11RenewLeaseRequest\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x1b\n" +
+	"\tworker_id\x18\x02 \x01(\x04R\bworkerId\"\x14\n" +
+	"\x12RenewLeaseResponse\"J\n" +
+	"\x12MarkRunningRequest\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x1b\n" +
+	"\tworker_id\x18\x02 \x01(\x04R\bworkerId\"\x15\n" +
+	"\x13MarkRunningResponse*D\n" +
 	"\vTaskOutcome\x12\x1c\n" +
 	"\x18TASK_OUTCOME_UNSPECIFIED\x10\x00\x12\v\n" +
 	"\aSUCCESS\x10\x01\x12\n" +
@@ -628,10 +720,11 @@ const file_bully_proto_rawDesc = "" +
 	"\x0eAnnounceLeader\x12\x19.bully.CoordinatorRequest\x1a\x1a.bully.CoordinatorResponse2R\n" +
 	"\rWorkerService\x12A\n" +
 	"\n" +
-	"AssignTask\x12\x18.bully.AssignTaskRequest\x1a\x19.bully.AssignTaskResponse2\x9e\x01\n" +
+	"AssignTask\x12\x18.bully.AssignTaskRequest\x1a\x19.bully.AssignTaskResponse2\xe4\x01\n" +
 	"\x10SchedulerService\x12A\n" +
 	"\n" +
-	"RenewLease\x12\x18.bully.RenewLeaseRequest\x1a\x19.bully.RenewLeaseResponse\x12G\n" +
+	"RenewLease\x12\x18.bully.RenewLeaseRequest\x1a\x19.bully.RenewLeaseResponse\x12D\n" +
+	"\vMarkRunning\x12\x19.bully.MarkRunningRequest\x1a\x1a.bully.MarkRunningResponse\x12G\n" +
 	"\fReportResult\x12\x1a.bully.ReportResultRequest\x1a\x1b.bully.ReportResultResponseB&Z$github.com/oyavri/pi-bully/gen/bullyb\x06proto3"
 
 var (
@@ -647,7 +740,7 @@ func file_bully_proto_rawDescGZIP() []byte {
 }
 
 var file_bully_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_bully_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_bully_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_bully_proto_goTypes = []any{
 	(TaskOutcome)(0),             // 0: bully.TaskOutcome
 	(*ElectionRequest)(nil),      // 1: bully.ElectionRequest
@@ -656,25 +749,29 @@ var file_bully_proto_goTypes = []any{
 	(*CoordinatorResponse)(nil),  // 4: bully.CoordinatorResponse
 	(*AssignTaskRequest)(nil),    // 5: bully.AssignTaskRequest
 	(*AssignTaskResponse)(nil),   // 6: bully.AssignTaskResponse
-	(*RenewLeaseRequest)(nil),    // 7: bully.RenewLeaseRequest
-	(*RenewLeaseResponse)(nil),   // 8: bully.RenewLeaseResponse
-	(*ReportResultRequest)(nil),  // 9: bully.ReportResultRequest
-	(*ReportResultResponse)(nil), // 10: bully.ReportResultResponse
+	(*ReportResultRequest)(nil),  // 7: bully.ReportResultRequest
+	(*ReportResultResponse)(nil), // 8: bully.ReportResultResponse
+	(*RenewLeaseRequest)(nil),    // 9: bully.RenewLeaseRequest
+	(*RenewLeaseResponse)(nil),   // 10: bully.RenewLeaseResponse
+	(*MarkRunningRequest)(nil),   // 11: bully.MarkRunningRequest
+	(*MarkRunningResponse)(nil),  // 12: bully.MarkRunningResponse
 }
 var file_bully_proto_depIdxs = []int32{
 	0,  // 0: bully.ReportResultRequest.outcome:type_name -> bully.TaskOutcome
 	1,  // 1: bully.ElectionService.StartElection:input_type -> bully.ElectionRequest
 	3,  // 2: bully.ElectionService.AnnounceLeader:input_type -> bully.CoordinatorRequest
 	5,  // 3: bully.WorkerService.AssignTask:input_type -> bully.AssignTaskRequest
-	7,  // 4: bully.SchedulerService.RenewLease:input_type -> bully.RenewLeaseRequest
-	9,  // 5: bully.SchedulerService.ReportResult:input_type -> bully.ReportResultRequest
-	2,  // 6: bully.ElectionService.StartElection:output_type -> bully.ElectionResponse
-	4,  // 7: bully.ElectionService.AnnounceLeader:output_type -> bully.CoordinatorResponse
-	6,  // 8: bully.WorkerService.AssignTask:output_type -> bully.AssignTaskResponse
-	8,  // 9: bully.SchedulerService.RenewLease:output_type -> bully.RenewLeaseResponse
-	10, // 10: bully.SchedulerService.ReportResult:output_type -> bully.ReportResultResponse
-	6,  // [6:11] is the sub-list for method output_type
-	1,  // [1:6] is the sub-list for method input_type
+	9,  // 4: bully.SchedulerService.RenewLease:input_type -> bully.RenewLeaseRequest
+	11, // 5: bully.SchedulerService.MarkRunning:input_type -> bully.MarkRunningRequest
+	7,  // 6: bully.SchedulerService.ReportResult:input_type -> bully.ReportResultRequest
+	2,  // 7: bully.ElectionService.StartElection:output_type -> bully.ElectionResponse
+	4,  // 8: bully.ElectionService.AnnounceLeader:output_type -> bully.CoordinatorResponse
+	6,  // 9: bully.WorkerService.AssignTask:output_type -> bully.AssignTaskResponse
+	10, // 10: bully.SchedulerService.RenewLease:output_type -> bully.RenewLeaseResponse
+	12, // 11: bully.SchedulerService.MarkRunning:output_type -> bully.MarkRunningResponse
+	8,  // 12: bully.SchedulerService.ReportResult:output_type -> bully.ReportResultResponse
+	7,  // [7:13] is the sub-list for method output_type
+	1,  // [1:7] is the sub-list for method input_type
 	1,  // [1:1] is the sub-list for extension type_name
 	1,  // [1:1] is the sub-list for extension extendee
 	0,  // [0:1] is the sub-list for field type_name
@@ -691,7 +788,7 @@ func file_bully_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bully_proto_rawDesc), len(file_bully_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   10,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   3,
 		},

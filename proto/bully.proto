@@ -45,16 +45,10 @@ message AssignTaskResponse {
   bool accepted = 1;
 }
 
-message RenewLeaseRequest {
-  string task_id = 1;
-  uint64 worker_id = 2;
-}
-
-message RenewLeaseResponse {}
-
 // --- Scheduler ---
 service SchedulerService {
   rpc RenewLease(RenewLeaseRequest) returns (RenewLeaseResponse);
+  rpc MarkRunning(MarkRunningRequest) returns (MarkRunningResponse);
   rpc ReportResult(ReportResultRequest) returns (ReportResultResponse);
 }
 
@@ -72,3 +66,17 @@ message ReportResultRequest {
 }
 
 message ReportResultResponse {}
+
+message RenewLeaseRequest {
+  string task_id = 1;
+  uint64 worker_id = 2;
+}
+
+message RenewLeaseResponse {}
+
+message MarkRunningRequest {
+  string task_id = 1;
+  uint64 worker_id = 2;
+}
+
+message MarkRunningResponse {}
