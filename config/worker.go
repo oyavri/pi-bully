@@ -9,7 +9,7 @@ type WorkerConfig struct {
 
 func loadWorkerConfig() WorkerConfig {
 	return WorkerConfig{
-		RPCTimeout:           getDurationEnv("RPC_TIMEOUT", 5*time.Second),
+		RPCTimeout:           getDurationEnv("WORKER_RPC_TIMEOUT", 5*time.Second),
 		LeaseRenewalInterval: getDurationEnv("WORKER_LEASE_RENEWAL_INTERVAL", 30*time.Second),
 	}
 }
