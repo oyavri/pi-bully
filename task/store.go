@@ -330,6 +330,47 @@ func (s *PostgresStore) MarkFailed(ctx context.Context, taskID uuid.UUID, worker
 	return nil
 }
 
+func (s *PostgresStore) MarkWorkerLost(ctx context.Context, taskID uuid.UUID, workerID uint64) error {
+	log := s.log("MarkWorkerLost").With(
+		zap.Uint64("workerID", workerID),
+		zap.String("taskID", taskID.String()),
+	)
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		log.Error("failed to begin transaction", zap.Error(err))
+		return fmt.Errorf("mark worker lost: begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	if err := ensureLatestStatusIn(ctx, tx, taskID, StateAssigned, StateRunning); err != nil {
+		log.Warn("latest status validation failed", zap.Error(err))
+		return fmt.Errorf("mark worker lost: %w", err)
+	}
+
+	if err := insertStatus(ctx, tx, taskID, StateWorkerLost, &workerID, ""); err != nil {
+		log.Error("failed to insert worker lost status", zap.Error(err))
+		return fmt.Errorf("mark worker lost: %w", err)
+	}
+
+	if _, err := tx.Exec(ctx, deleteLeaseQuery, taskID, int64(workerID)); err != nil {
+		log.Error("failed to delete task lease", zap.Error(err))
+		return fmt.Errorf("mark worker lost: delete lease: %w", err)
+	}
+
+	if err := insertStatus(ctx, tx, taskID, StateQueued, nil, ""); err != nil {
+		log.Error("failed to requeue worker-lost task", zap.Error(err))
+		return fmt.Errorf("mark worker lost: requeue: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Error("failed to commit", zap.Error(err))
+		return fmt.Errorf("mark worker lost: commit: %w", err)
+	}
+
+	return nil
+}
+
 func (s *PostgresStore) RecoverExpiredLeases(ctx context.Context) (int, error) {
 	log := s.log("RecoverExpiredLeases")
 

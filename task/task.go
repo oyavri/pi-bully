@@ -14,6 +14,7 @@ type Store interface {
 	MarkRunning(ctx context.Context, taskID uuid.UUID, workerID uint64) error
 	MarkCompleted(ctx context.Context, taskID uuid.UUID, workerID uint64) error
 	MarkFailed(ctx context.Context, taskID uuid.UUID, workerID uint64) error
+	MarkWorkerLost(ctx context.Context, taskID uuid.UUID, workerID uint64) error
 	RecoverExpiredLeases(ctx context.Context) (int, error)
 	RecoverDeadWorkerLeases(ctx context.Context, alive map[uint64]cluster.Member) (int, error)
 	RecoverStaleScheduling(ctx context.Context) (int, error)
