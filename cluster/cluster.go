@@ -14,6 +14,7 @@ type Cluster interface {
 	Join(seeds []string) error
 	Leave() error
 	Members() map[uint64]Member
+	MemberAddr(id uint64) (string, bool)
 	EventC() <-chan ClusterEvent
 }
 
@@ -103,6 +104,15 @@ func (c *cluster) Leave() error {
 
 func (c *cluster) Members() map[uint64]Member {
 	return c.handler.Members()
+}
+
+func (c *cluster) MemberAddr(id uint64) (string, bool) {
+	members := c.handler.Members()
+	member, ok := members[id]
+	if !ok {
+		return "", false
+	}
+	return member.GRPCAddr, true
 }
 
 func (c *cluster) EventC() <-chan ClusterEvent {
