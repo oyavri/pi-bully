@@ -212,7 +212,7 @@ func (s *PostgresStore) MarkCompleted(ctx context.Context, taskID uuid.UUID, wor
 	return nil
 }
 
-func (s *PostgresStore) MarkFailed(ctx context.Context, taskID uuid.UUID, workerID uint64) error {
+func (s *PostgresStore) MarkFailed(ctx context.Context, taskID uuid.UUID, workerID uint64, errMsg string) error {
 	log := s.log("MarkFailed").With(
 		zap.Uint64("workerID", workerID),
 		zap.String("taskID", taskID.String()),
@@ -232,7 +232,7 @@ func (s *PostgresStore) MarkFailed(ctx context.Context, taskID uuid.UUID, worker
 		return fmt.Errorf("mark failed: %w", err)
 	}
 
-	if err := insertStatus(ctx, tx, taskID, StateFailed, &workerID, ""); err != nil {
+	if err := insertStatus(ctx, tx, taskID, StateFailed, &workerID, errMsg); err != nil {
 		return fmt.Errorf("mark failed: %w", err)
 	}
 
@@ -270,7 +270,7 @@ func (s *PostgresStore) MarkFailed(ctx context.Context, taskID uuid.UUID, worker
 	return nil
 }
 
-func (s *PostgresStore) MarkWorkerLost(ctx context.Context, taskID uuid.UUID, workerID uint64) error {
+func (s *PostgresStore) MarkWorkerLost(ctx context.Context, taskID uuid.UUID, workerID uint64, errMsg string) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("mark worker lost: begin transaction: %w", err)
@@ -281,7 +281,7 @@ func (s *PostgresStore) MarkWorkerLost(ctx context.Context, taskID uuid.UUID, wo
 		return fmt.Errorf("mark worker lost: %w", err)
 	}
 
-	if err := insertStatus(ctx, tx, taskID, StateWorkerLost, &workerID, ""); err != nil {
+	if err := insertStatus(ctx, tx, taskID, StateWorkerLost, &workerID, errMsg); err != nil {
 		return fmt.Errorf("mark worker lost: %w", err)
 	}
 
@@ -394,7 +394,7 @@ func (s *PostgresStore) RecoverDeadWorkerLeases(ctx context.Context, alive map[u
 	}
 
 	for _, lease := range deadLeases {
-		if err := insertStatus(ctx, tx, lease.TaskID, StateWorkerLost, &lease.WorkerID, "worker not alive during leader takeover"); err != nil {
+		if err := insertStatus(ctx, tx, lease.TaskID, StateWorkerLost, &lease.WorkerID, "worker not alive during leader recovery"); err != nil {
 			return 0, fmt.Errorf("recover dead worker leases: mark worker lost %s: %w", lease.TaskID, err)
 		}
 

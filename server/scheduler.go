@@ -31,7 +31,7 @@ func (s *SchedulerServer) ReportResult(ctx context.Context, req *pb.ReportResult
 	case pb.TaskOutcome_SUCCESS:
 		err = s.store.MarkCompleted(ctx, taskID, req.WorkerId)
 	case pb.TaskOutcome_FAILED:
-		err = s.store.MarkFailed(ctx, taskID, req.WorkerId)
+		err = s.store.MarkFailed(ctx, taskID, req.WorkerId, req.Error)
 	default:
 		return nil, status.Error(codes.InvalidArgument, "invalid outcome")
 	}

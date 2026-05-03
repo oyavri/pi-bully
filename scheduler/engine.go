@@ -163,7 +163,7 @@ func (e *Engine) dispatchClaimedTasks(ctx context.Context, tasks []task.Task, wo
 				zap.Error(err),
 			)
 
-			if err := e.store.MarkWorkerLost(ctx, t.ID, worker.ID); err != nil {
+			if err := e.store.MarkWorkerLost(ctx, t.ID, worker.ID, "dispatch failed"); err != nil {
 				e.logger.Error("failed to mark worker lost after dispatch failure",
 					zap.String("taskID", t.ID.String()),
 					zap.Uint64("workerID", worker.ID),
