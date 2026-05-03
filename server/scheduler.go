@@ -55,3 +55,16 @@ func (s *SchedulerServer) RenewLease(ctx context.Context, req *pb.RenewLeaseRequ
 
 	return &pb.RenewLeaseResponse{}, nil
 }
+
+func (s *SchedulerServer) MarkRunning(ctx context.Context, req *pb.MarkRunningRequest) (*pb.MarkRunningResponse, error) {
+	taskID, err := uuid.Parse(req.TaskId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid task_id")
+	}
+
+	if err := s.store.MarkRunning(ctx, taskID, req.WorkerId); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.MarkRunningResponse{}, nil
+}
