@@ -162,6 +162,14 @@ func (e *Engine) dispatchClaimedTasks(ctx context.Context, tasks []task.Task, wo
 				zap.String("grpcAddr", worker.GRPCAddr),
 				zap.Error(err),
 			)
+
+			if err := e.store.MarkWorkerLost(ctx, t.ID, worker.ID); err != nil {
+				e.logger.Error("failed to mark worker lost after dispatch failure",
+					zap.String("taskID", t.ID.String()),
+					zap.Uint64("workerID", worker.ID),
+					zap.Error(err),
+				)
+			}
 		}
 	}
 }
