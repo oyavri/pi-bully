@@ -29,6 +29,7 @@ type Engine struct {
 	election        election.Engine
 	cluster         cluster.Cluster
 	workerClient    WorkerClient
+	executor        Executor
 	leaseRenewEvery time.Duration
 	rpcTimeout      time.Duration
 	logger          *zap.Logger
@@ -39,6 +40,7 @@ func NewEngine(
 	election election.Engine,
 	cluster cluster.Cluster,
 	workerClient WorkerClient,
+	executor Executor,
 	leaseRenewEvery time.Duration,
 	rpcTimeout time.Duration,
 	logger *zap.Logger,
@@ -48,6 +50,7 @@ func NewEngine(
 		election:        election,
 		cluster:         cluster,
 		workerClient:    workerClient,
+		executor:        executor,
 		leaseRenewEvery: leaseRenewEvery,
 		rpcTimeout:      rpcTimeout,
 		logger:          logger.With(zap.String("component", "worker")),
@@ -92,8 +95,41 @@ func (e *Engine) runTask(a Assignment) {
 
 	go e.renewLoop(taskCtx, taskID)
 
-	// TODO: execution will be here
-	time.Sleep(3 * time.Second)
+	if err := e.executor.Execute(taskCtx, a); err != nil {
+		e.logger.Error("task execution failed",
+			zap.String("taskID", taskID),
+			zap.Error(err),
+		)
+
+		addr, ok := e.leaderAddr()
+		if !ok {
+			e.logger.Error("failed to resolve leader address for failure reporting",
+				zap.String("taskID", taskID),
+			)
+			return
+		}
+
+		ctx, cancel = context.WithTimeout(context.Background(), e.rpcTimeout)
+		defer cancel()
+
+		_, reportErr := e.workerClient.ReportResult(ctx, addr, &pb.ReportResultRequest{
+			TaskId:   taskID,
+			WorkerId: e.workerID,
+			Outcome:  pb.TaskOutcome_FAILED,
+			Error:    err.Error(),
+		})
+		if reportErr != nil {
+			e.logger.Error("failed to report task failure",
+				zap.String("taskID", taskID),
+				zap.Error(reportErr),
+			)
+		}
+
+		e.logger.Info("task failed",
+			zap.String("taskID", taskID),
+		)
+		return
+	}
 
 	addr, ok = e.leaderAddr()
 	if !ok {

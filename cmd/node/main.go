@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/oyavri/pi-bully/cluster"
 	"github.com/oyavri/pi-bully/config"
@@ -92,12 +93,15 @@ func main() {
 	)
 
 	// Worker
+	executor := worker.NewSleepExecutor(3 * time.Second)
+
 	workerClient := server.NewWorkerClient()
 	workerEngine := worker.NewEngine(
 		cfg.Node.ID,
 		electionEngine,
 		cl,
 		workerClient,
+		executor,
 		cfg.Worker.LeaseRenewalInterval,
 		cfg.Worker.RPCTimeout,
 		logger,
