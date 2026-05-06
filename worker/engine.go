@@ -187,7 +187,12 @@ func (e *Engine) renewLoop(ctx context.Context, taskID string) {
 					zap.String("taskID", taskID),
 					zap.Error(err),
 				)
+				continue
 			}
+
+			e.logger.Debug("lease renewed",
+				zap.String("taskID", taskID),
+			)
 		case <-ctx.Done():
 			return
 		}
