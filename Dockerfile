@@ -16,7 +16,7 @@ FROM alpine:3.21
 
 WORKDIR /app
 
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl python3 ffmpeg
 
 COPY --from=builder /app/node .
 
