@@ -2,29 +2,18 @@ package worker
 
 import (
 	"context"
-	"time"
 )
 
 type Executor interface {
 	Execute(ctx context.Context, a Assignment) error
 }
 
-type SleepExecutor struct {
-	Duration time.Duration
+type TaskExecutor struct{}
+
+func NewTaskExecutor() *TaskExecutor {
+	return &TaskExecutor{}
 }
 
-func NewSleepExecutor(duration time.Duration) *SleepExecutor {
-	return &SleepExecutor{Duration: duration}
-}
-
-func (e *SleepExecutor) Execute(ctx context.Context, a Assignment) error {
-	timer := time.NewTimer(e.Duration)
-	defer timer.Stop()
-
-	select {
-	case <-timer.C:
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+func (e *TaskExecutor) Execute(ctx context.Context, a Assignment) error {
+	return nil
 }
