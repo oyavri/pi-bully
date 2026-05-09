@@ -37,6 +37,8 @@ var (
 	selectActiveLeasesQuery string
 	//go:embed sql/select_stale_scheduling.sql
 	selectStaleSchedulingQuery string
+	//go:embed sql/list_active_leases.sql
+	listActiveLeasesQuery string
 )
 
 type PostgresStore struct {
@@ -107,6 +109,31 @@ func (s *PostgresStore) ClaimQueued(ctx context.Context, schedulerID uint64, bat
 
 	log.Info("successfully claimed tasks", zap.Int("count", len(tasks)))
 	return tasks, nil
+}
+
+func (s *PostgresStore) ActiveLeases(ctx context.Context) ([]Lease, error) {
+	rows, err := s.pool.Query(ctx, listActiveLeasesQuery)
+	if err != nil {
+		return nil, fmt.Errorf("active leases: query: %w", err)
+	}
+	defer rows.Close()
+
+	var leases []Lease
+	for rows.Next() {
+		var l Lease
+		var workerID int64
+		if err := rows.Scan(&l.TaskID, &workerID, &l.ExpiresAt); err != nil {
+			return nil, fmt.Errorf("active leases: scan: %w", err)
+		}
+		l.WorkerID = uint64(workerID)
+		leases = append(leases, l)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("active leases: rows: %w", err)
+	}
+
+	return leases, nil
 }
 
 func (s *PostgresStore) RenewLease(ctx context.Context, taskID uuid.UUID, workerID uint64) error {

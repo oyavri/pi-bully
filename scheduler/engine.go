@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+	"maps"
 	"time"
 
 	"github.com/oyavri/pi-bully/cluster"
@@ -76,18 +77,27 @@ func (e *Engine) tick(ctx context.Context) {
 		return
 	}
 
-	workers := e.aliveWorkers()
-	if len(workers) == 0 {
+	alive := e.aliveWorkers()
+	if len(alive) == 0 {
 		return
 	}
 
 	if !e.didLeaderRecovery {
-		e.recoverOnLeadership(ctx, workers)
+		e.recoverOnLeadership(ctx, alive)
 		e.didLeaderRecovery = true
 	}
 
 	if _, err := e.store.RecoverExpiredLeases(ctx); err != nil {
 		e.logger.Error("failed to recover expired leases", zap.Error(err))
+		return
+	}
+
+	workers, err := e.freeWorkers(ctx, alive)
+	if err != nil {
+		e.logger.Error("failed to determine free workers", zap.Error(err))
+		return
+	}
+	if len(workers) == 0 {
 		return
 	}
 
@@ -130,6 +140,26 @@ func (e *Engine) aliveWorkers() map[uint64]cluster.Member {
 	}
 
 	return alive
+}
+
+func (e *Engine) freeWorkers(ctx context.Context, alive map[uint64]cluster.Member) (map[uint64]cluster.Member, error) {
+	if len(alive) == 0 {
+		return alive, nil
+	}
+
+	leases, err := e.store.ActiveLeases(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	free := make(map[uint64]cluster.Member, len(alive))
+	maps.Copy(free, alive)
+
+	for _, lease := range leases {
+		delete(free, lease.WorkerID)
+	}
+
+	return free, nil
 }
 
 func (e *Engine) dispatchClaimedTasks(ctx context.Context, tasks []task.Task, workers map[uint64]cluster.Member) {
