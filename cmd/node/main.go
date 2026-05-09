@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/oyavri/pi-bully/cluster"
 	"github.com/oyavri/pi-bully/config"
@@ -93,7 +93,11 @@ func main() {
 	)
 
 	// Worker
-	executor := worker.NewSleepExecutor(3 * time.Second)
+	pythonPath, err := exec.LookPath("python3")
+	if err != nil {
+		logger.Fatal("python3 not found", zap.Error(err))
+	}
+	executor := worker.NewTaskExecutor(storageClient, pythonPath, cfg.Worker.OutputBaseURI, logger)
 
 	workerClient := server.NewWorkerClient()
 	workerEngine := worker.NewEngine(
@@ -132,7 +136,7 @@ func main() {
 	}()
 
 	if err := cl.Join(cfg.Memberlist.Seeds); err != nil {
-		logger.Fatal("failed to join cluster")
+		logger.Fatal("failed to join cluster", zap.Error(err))
 	}
 
 	electionEngine.Start(ctx)
@@ -146,6 +150,4 @@ func main() {
 	if err := cl.Leave(); err != nil {
 		logger.Error("failed to leave cluster cleanly")
 	}
-
-	_ = storageClient
 }
