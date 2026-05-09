@@ -97,7 +97,7 @@ func main() {
 	if err != nil {
 		logger.Fatal("python3 not found", zap.Error(err))
 	}
-	executor := worker.NewTaskExecutor(storageClient, pythonPath, cfg.Worker.OutputBaseURI, logger)
+	executor := worker.NewTaskExecutor(storageClient, pythonPath, logger)
 
 	workerClient := server.NewWorkerClient()
 	workerEngine := worker.NewEngine(

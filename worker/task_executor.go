@@ -7,25 +7,22 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/oyavri/pi-bully/storage"
 	"go.uber.org/zap"
 )
 
 type TaskExecutor struct {
-	storage       storage.Storage
-	pythonPath    string
-	outputBaseURI string
-	logger        *zap.Logger
+	storage    storage.Storage
+	pythonPath string
+	logger     *zap.Logger
 }
 
-func NewTaskExecutor(storage storage.Storage, pythonPath string, outputBaseURI string, logger *zap.Logger) *TaskExecutor {
+func NewTaskExecutor(storage storage.Storage, pythonPath string, logger *zap.Logger) *TaskExecutor {
 	return &TaskExecutor{
-		storage:       storage,
-		pythonPath:    pythonPath,
-		outputBaseURI: outputBaseURI,
-		logger:        logger.With(zap.String("component", "task_executor")),
+		storage:    storage,
+		pythonPath: pythonPath,
+		logger:     logger.With(zap.String("component", "task_executor")),
 	}
 }
 
@@ -38,10 +35,18 @@ func (e *TaskExecutor) Execute(ctx context.Context, a Assignment) error {
 
 	scriptPath := filepath.Join(workDir, "task.py")
 	inputPath := filepath.Join(workDir, "input")
+	outputPath := ""
+	uploadURI := ""
 
-	outputName := a.TaskID + ".mp4"
-	outputPath := filepath.Join(workDir, outputName)
-	uploadURI := buildOutputURI(e.outputBaseURI, outputName)
+	if a.OutputURI != "" {
+		outputName := filepath.Base(a.OutputURI)
+		if outputName == "." || outputName == "/" || outputName == "" {
+			return fmt.Errorf("invalid output_uri %q", a.OutputURI)
+		}
+
+		outputPath = filepath.Join(workDir, outputName)
+		uploadURI = a.OutputURI
+	}
 
 	if err := e.storage.Download(ctx, a.ExecutableURI, scriptPath); err != nil {
 		return fmt.Errorf("download executable: %w", err)
@@ -77,7 +82,7 @@ func (e *TaskExecutor) Execute(ctx context.Context, a Assignment) error {
 		return fmt.Errorf("execute task: %w", err)
 	}
 
-	if e.outputBaseURI != "" {
+	if uploadURI != "" {
 		if _, err := os.Stat(outputPath); err != nil {
 			return fmt.Errorf("task finished but output file missing at %s: %w", outputPath, err)
 		}
@@ -88,11 +93,4 @@ func (e *TaskExecutor) Execute(ctx context.Context, a Assignment) error {
 	}
 
 	return nil
-}
-
-func buildOutputURI(baseURI string, fileName string) string {
-	if strings.HasSuffix(baseURI, "/") {
-		return baseURI + fileName
-	}
-	return baseURI + "/" + fileName
 }
