@@ -1,4 +1,7 @@
-.PHONY: proto
+.PHONY: proto build build-rpi-arm64
+
+BUILD_DIR := bin
+APP := pi-bully
 
 proto:
 	mkdir -p gen
@@ -9,6 +12,11 @@ proto:
 		--go-grpc_out=. \
 		--go-grpc_opt=module=github.com/oyavri/pi-bully \
 		proto/bully.proto
+
+build-rpi:
+	@echo "Building $(APP) for Raspberry Pi (linux/arm64)..."
+	@mkdir -p $(BUILD_DIR)
+	@CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o $(BUILD_DIR)/$(APP)-linux-arm64 ./cmd/node
 
 mocks:
 	@echo "Generating mocks..."
