@@ -2,6 +2,7 @@ import argparse
 import os
 import subprocess
 import sys
+import time
 
 
 def required_env(name: str) -> str:
@@ -22,14 +23,30 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--crf", type=int, default=28)
     parser.add_argument("--video-bitrate", default="")
     parser.add_argument("--audio-bitrate", default="")
-    parser.add_argument("--extra-arg", action="append", default=[])
+
+    parser.add_argument("--fail-after", type=float, default=-1.0)
+    parser.add_argument("--fail-message", default="injected transcode failure")
+    parser.add_argument("--fail-exit-code", type=int, default=2)
+
     return parser.parse_args()
+
+
+def maybe_fail(args: argparse.Namespace) -> None:
+    if args.fail_after < 0:
+        return
+
+    if args.fail_after > 0:
+        time.sleep(args.fail_after)
+
+    sys.stderr.write(args.fail_message + "\n")
+    sys.exit(args.fail_exit_code)
 
 
 def main() -> int:
     task_input = required_env("TASK_INPUT")
     task_output = required_env("TASK_OUTPUT")
     args = parse_args()
+    maybe_fail(args)
 
     cmd = [
         "ffmpeg",
@@ -53,9 +70,6 @@ def main() -> int:
 
     if args.audio_bitrate:
         cmd.extend(["-b:a", args.audio_bitrate])
-
-    for value in args.extra_arg:
-        cmd.extend(value.split())
 
     cmd.append(task_output)
 
