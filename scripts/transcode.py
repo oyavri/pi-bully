@@ -3,6 +3,7 @@ import os
 import signal
 import subprocess
 import sys
+import threading
 import time
 
 
@@ -33,17 +34,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def maybe_fail(args: argparse.Namespace) -> None:
-    if args.fail_after < 0:
-        return
-
-    if args.fail_after > 0:
-        time.sleep(args.fail_after)
-
-    sys.stderr.write(args.fail_message + "\n")
-    sys.exit(args.fail_exit_code)
-
-
 def maybe_kill_worker(args: argparse.Namespace) -> None:
     if args.kill_worker_after < 0:
         return
@@ -59,18 +49,29 @@ def maybe_kill_worker(args: argparse.Namespace) -> None:
         sys.stderr.write(f"invalid WORKER_PID value: {worker_pid_raw}\n")
         sys.exit(1)
 
-    if args.kill_worker_after > 0:
-        time.sleep(args.kill_worker_after)
+    time.sleep(args.kill_worker_after)
 
     os.kill(worker_pid, signal.SIGKILL)
+
+
+def maybe_fail(args: argparse.Namespace, proc: subprocess.Popen[str]) -> None:
+    if args.fail_after < 0:
+        return
+
+    time.sleep(args.fail_after)
+
+    if proc.poll() is None:
+        proc.kill()
+
+    sys.stderr.write(args.fail_message + "\n")
+    sys.stderr.flush()
+    os._exit(args.fail_exit_code)
 
 
 def main() -> int:
     task_input = required_env("TASK_INPUT")
     task_output = required_env("TASK_OUTPUT")
     args = parse_args()
-    maybe_fail(args)
-    maybe_kill_worker(args)
 
     cmd = [
         "ffmpeg",
@@ -97,9 +98,32 @@ def main() -> int:
 
     cmd.append(task_output)
 
-    proc = subprocess.run(cmd, capture_output=True, text=True)
+    proc: subprocess.Popen[str] = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+    threads: list[threading.Thread] = []
+
+    if args.fail_after >= 0:
+        fail_thread = threading.Thread(
+            target=maybe_fail, args=(args, proc), daemon=True
+        )
+        fail_thread.start()
+        threads.append(fail_thread)
+
+    if args.kill_worker_after >= 0:
+        kill_thread = threading.Thread(
+            target=maybe_kill_worker, args=(args,), daemon=True
+        )
+        kill_thread.start()
+        threads.append(kill_thread)
+
+    stdout, stderr = proc.communicate()
     if proc.returncode != 0:
-        sys.stderr.write(proc.stderr or proc.stdout)
+        sys.stderr.write(stderr or stdout)
         return proc.returncode
 
     return 0
