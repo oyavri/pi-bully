@@ -1,5 +1,6 @@
 import argparse
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -27,6 +28,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--fail-after", type=float, default=-1.0)
     parser.add_argument("--fail-message", default="injected transcode failure")
     parser.add_argument("--fail-exit-code", type=int, default=2)
+    parser.add_argument("--kill-worker-after", type=float, default=-1.0)
 
     return parser.parse_args()
 
@@ -42,11 +44,33 @@ def maybe_fail(args: argparse.Namespace) -> None:
     sys.exit(args.fail_exit_code)
 
 
+def maybe_kill_worker(args: argparse.Namespace) -> None:
+    if args.kill_worker_after < 0:
+        return
+
+    worker_pid_raw = os.environ.get("WORKER_PID", "")
+    if not worker_pid_raw:
+        sys.stderr.write("WORKER_PID is required for worker termination\n")
+        sys.exit(1)
+
+    try:
+        worker_pid = int(worker_pid_raw)
+    except ValueError:
+        sys.stderr.write(f"invalid WORKER_PID value: {worker_pid_raw}\n")
+        sys.exit(1)
+
+    if args.kill_worker_after > 0:
+        time.sleep(args.kill_worker_after)
+
+    os.kill(worker_pid, signal.SIGKILL)
+
+
 def main() -> int:
     task_input = required_env("TASK_INPUT")
     task_output = required_env("TASK_OUTPUT")
     args = parse_args()
     maybe_fail(args)
+    maybe_kill_worker(args)
 
     cmd = [
         "ffmpeg",

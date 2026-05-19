@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 
 	"github.com/oyavri/pi-bully/storage"
 	"go.uber.org/zap"
@@ -66,6 +67,7 @@ func (e *TaskExecutor) Execute(ctx context.Context, a Assignment) error {
 	cmd.Env = []string{
 		"TASK_INPUT=" + taskInput,
 		"TASK_OUTPUT=" + outputPath,
+		"WORKER_PID=" + strconv.Itoa(os.Getpid()),
 	}
 
 	var stdout, stderr bytes.Buffer
