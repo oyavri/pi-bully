@@ -16,7 +16,7 @@ At a high level, the system consists of:
 - PostgreSQL for task metadata, task history, and active leases
 - S3-compatible object storage for task scripts, inputs, and outputs
 
-INSERT DIAGRAM HERE
+![System Architecture](./docs/system_architecture.png)
 
 ## Task Representation
 
